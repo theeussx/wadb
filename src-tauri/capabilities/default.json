@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capacidade padrão da janela principal. Nenhum plugin de shell: o frontend NUNCA executa comandos diretamente; toda execução passa pela camada Rust.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default"
+  ]
+}
