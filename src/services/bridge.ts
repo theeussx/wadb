@@ -422,5 +422,9 @@ export function getBridge(): Bridge {
   return bridge;
 }
 
+export function setBridge(b: Bridge | null): void {
+  bridge = b;
+}
+
 // MockBridge is defined in mock.ts (kept separate for testability).
 import { MockBridge } from './mock';

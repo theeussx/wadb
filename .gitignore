@@ -12,7 +12,7 @@ src-tauri/gen/schemas/
 
 # Logs & local data
 *.log
-logs/
+/logs/
 .local/
 tmp/
 
