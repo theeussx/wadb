@@ -203,6 +203,7 @@ const ptBR: Record<string, string> = {
   'session': 'Sessão',
 
   // ---- logs ----
+  'local.banner': 'ADB local · Dispositivos reais, informações, lista de apps, shell e logs. As demais operações ainda requerem o aplicativo desktop (npm run tauri:dev).',
   'logs.title': 'Logs (logcat)',
   'logs.start': 'Iniciar',
   'logs.stop': 'Parar',

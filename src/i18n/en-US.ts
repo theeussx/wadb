@@ -192,6 +192,7 @@ const enUS: Record<string, string> = {
   'shell.openHint': 'Open a session for the selected device.',
   'session': 'Session',
 
+  'local.banner': 'Local ADB · Real devices, information, app list, shell and logs. Other operations still require the desktop application (npm run tauri:dev).',
   'logs.title': 'Logs (logcat)',
   'logs.start': 'Start',
   'logs.stop': 'Stop',

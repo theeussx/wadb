@@ -32,16 +32,16 @@ export function ShellView({ serial }: { serial: string }) {
       .shellOpen(serial)
       .then((s) => {
         if (cancelled) {
-          void getBridge().shellClose(s.id);
+          void getBridge().shellClose(s.id).catch(() => {});
           return;
         }
         id = s.id;
+        sessionRef.current = s.id;
         setSession(s.id);
         setBusy(false);
       })
       .catch((e) => {
-        if (!cancelled) setError(asAppError(e));
-        setBusy(false);
+        if (!cancelled) { setError(asAppError(e)); setBusy(false); }
       });
 
     const off = getBridge().on('shell-output', (payload) => {
@@ -61,7 +61,7 @@ export function ShellView({ serial }: { serial: string }) {
     return () => {
       cancelled = true;
       off();
-      if (id) void getBridge().shellClose(id);
+      if (id) void getBridge().shellClose(id).catch(() => {});
     };
   }, [serial, t]);
 
@@ -81,20 +81,7 @@ export function ShellView({ serial }: { serial: string }) {
     }
   };
 
-  const closeAll = async () => {
-    await getBridge().shellCloseAll();
-    setLines([]);
-    setSession(null);
-    setBusy(true);
-    // Re-open.
-    getBridge()
-      .shellOpen(serial)
-      .then((s) => {
-        setSession(s.id);
-        setBusy(false);
-      })
-      .catch((e) => setError(asAppError(e)));
-  };
+  const clearView = () => setLines([]);
 
   return (
     <div className="grid cols-2" style={{ height: '100%', minHeight: 0 }}>
@@ -103,7 +90,7 @@ export function ShellView({ serial }: { serial: string }) {
           <span className="mono small">{serial}</span>
           <Badge tone={session ? 'ok' : 'warn'}>{session ? t('shell.connected') : t('shell.opening.short')}</Badge>
           <div className="spacer" />
-          <Button size="small" variant="ghost" onClick={closeAll} title={t('shell.clear')}>
+          <Button size="small" variant="ghost" onClick={clearView} title={t('shell.clear')}>
             {t('shell.clear')}
           </Button>
         </div>

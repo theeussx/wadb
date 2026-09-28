@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { AppShell } from './app/AppShell';
-import { getBridge, isTauri } from './services/bridge';
+import { getBridge, asAppError } from './services/bridge';
 import { refreshDevices } from './services/deviceService';
 import { applyHtmlClasses, perfTweaks, useApp } from './stores/app';
 
@@ -13,7 +13,7 @@ export default function App() {
 
   // Bootstrap: environment, settings, tools, devices.
   useEffect(() => {
-    const demo = !isTauri();
+    const demo = getBridge().isDemo;
     setDemo(demo);
     if (!demo) {
       getBridge()
@@ -54,7 +54,7 @@ export default function App() {
       getBridge()
         .screenshot(selectedSerial, false)
         .then((r) => toast({ kind: 'success', title: useApp.getState().t('dash.screenshot.saved'), body: r.path }))
-        .catch(() => {});
+        .catch((e) => { const error = asAppError(e); toast({ kind: 'error', title: error.code, body: error.details }); });
     };
     window.addEventListener('adb-studio:screenshot', onShot);
     return () => window.removeEventListener('adb-studio:screenshot', onShot);

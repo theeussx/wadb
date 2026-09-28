@@ -70,3 +70,21 @@ Desativar pacote **não** é destrutiva (é reversível e o app oferece Reverter
 - O `adb` do sistema continua sujeito a seus próprios bugs; o app não corrige o binário.
 - O modelo de risco é heurística: **não** garante que um pacote classificado como "Baixo" seja inofensivo em todos os aparelhos.
 - Em modo demo (navegador), nenhuma operação real é executada — é o mesmo contrato, com resultados simulados.
+
+## Serviço de desenvolvimento no navegador
+
+`npm run dev` inclui uma API Node no próprio Vite. Não é um serviço de produção.
+O serviço exige Host loopback, Origin correspondente, POST JSON e cabeçalho
+`X-Wadb-Client: local`; não habilita CORS. Isso bloqueia chamadas de sites externos
+usuais e DNS rebinding, mas não protege contra código malicioso executado na própria
+origem, extensões privilegiadas ou usuários/processos locais. Não exponha o Vite
+por túnel nem use proxy que reescreva esses cabeçalhos.
+
+Os comandos são selecionados por allowlist e executados por `execFile`/`spawn`,
+sem shell no computador. Seriais e filtros de logcat são validados. O terminal é
+uma exceção intencional: o usuário envia comandos arbitrários ao shell **Android**
+selecionado, com os privilégios concedidos pelo ADB. A autorização RSA continua
+obrigatória. Os logs ficam em memória limitada; o download usa o navegador, não
+uma escrita arbitrária em caminhos do computador. Sessões inativas expiram.
+O modo demo não registra essa API. Operações ainda não implementadas retornam
+`UNSUPPORTED_LOCAL`, sem fallback para dados simulados.
