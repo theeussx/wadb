@@ -133,7 +133,7 @@ pub fn file_push(
 /// Starts a download. Progress is real: the local file size is polled
 /// against the remote size.
 #[tauri::command]
-pub fn file_pull(
+pub async fn file_pull(
     app: AppHandle,
     state: State<'_, AppState>,
     serial: String,
@@ -167,6 +167,11 @@ pub fn file_pull(
     }
 
     let size = {
+        // Cloned for the blocking thread: `adb`/`serial`/`remote` are still
+        // needed below to start the transfer.
+        let adb = adb.clone();
+        let serial = serial.clone();
+        let remote = remote.clone();
         let h = blocking(move || remote_file_size(&adb, &serial, &remote));
         join(h).await?
     };

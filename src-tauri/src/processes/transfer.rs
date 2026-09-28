@@ -32,11 +32,15 @@ pub struct TransferEvent {
 
 struct Job {
     kind: String,
+    #[allow(dead_code)]
     file: String,
     local: std::path::PathBuf,
     total: Option<u64>,
-    done: AtomicBool,
-    last_line: Mutex<String>,
+    // Shared with the line-callback closure, which is created *before* the
+    // child is spawned (the `Job` itself can only be built after `spawn`
+    // returns the real handle — an `Arc<Job>` cannot be mutated in place).
+    done: Arc<AtomicBool>,
+    last_line: Arc<Mutex<String>>,
     handle: Arc<StreamHandle>,
 }
 
@@ -136,14 +140,27 @@ impl TransferManager {
     ) -> Result<String, AppError> {
         crate::security::validate_serial(serial)?;
         validate_local_path(&local.to_string_lossy())?;
-        // exactly one of the args is the device path; validate the one that
-        // looks like it (must start with '/').
-        for arg in &adb_args {
-            if arg.starts_with('/') && kind == "pull" {
-                validate_device_path(arg)?;
+        // adb_args is always [src, dst]: pull = [remote, local],
+        // push = [local, remote]. The device-side path is validated
+        // positionally — a relative path must be rejected, never skipped.
+        match kind {
+            "pull" => {
+                let remote_arg = adb_args.first().ok_or_else(|| {
+                    AppError::new(ErrorCode::InvalidArgument, "internal: pull needs a remote path")
+                })?;
+                validate_device_path(remote_arg)?;
             }
-            if arg.starts_with('/') && kind == "push" {
-                validate_device_path(arg)?;
+            "push" => {
+                let remote_arg = adb_args.get(1).ok_or_else(|| {
+                    AppError::new(ErrorCode::InvalidArgument, "internal: push needs a remote path")
+                })?;
+                validate_device_path(remote_arg)?;
+            }
+            _ => {
+                return Err(AppError::new(
+                    ErrorCode::InvalidArgument,
+                    format!("unknown transfer kind: {kind}"),
+                ));
             }
         }
 
@@ -154,21 +171,10 @@ impl TransferManager {
             v
         };
 
-        let job = Arc::new(Job {
-            kind: kind.to_string(),
-            file: file.to_string(),
-            local: local.to_path_buf(),
-            total,
-            done: AtomicBool::new(false),
-            last_line: Mutex::new(String::new()),
-            handle: Arc::new(StreamHandle {
-                child: Mutex::new(None),
-                stdin: None,
-                label: format!("adb {kind}"),
-            }),
-        });
-
-        let job_for_line = Arc::clone(&job);
+        let done = Arc::new(AtomicBool::new(false));
+        let last_line = Arc::new(Mutex::new(String::new()));
+        let line_done = Arc::clone(&done);
+        let line_last = Arc::clone(&last_line);
         let on_line = move |line: String| {
             // adb reports the outcome in its final lines:
             //   "12345 bytes pushed in 1.234s (9.98 MB/s)"
@@ -178,8 +184,8 @@ impl TransferManager {
                 || line.contains("bytes pulled")
                 || line.contains("error")
             {
-                *job_for_line.last_line.lock().unwrap() = line.trim().to_string();
-                job_for_line.done.store(true, Ordering::SeqCst);
+                *line_last.lock().unwrap() = line.trim().to_string();
+                line_done.store(true, Ordering::SeqCst);
             }
         };
 
@@ -188,9 +194,17 @@ impl TransferManager {
             &full_args,
             &format!("adb {kind} {file}"),
             false,
-            Box::new(on_line),
+            Arc::new(on_line),
         )?;
-        job.handle = handle;
+        let job = Arc::new(Job {
+            kind: kind.to_string(),
+            file: file.to_string(),
+            local: local.to_path_buf(),
+            total,
+            done,
+            last_line,
+            handle,
+        });
         self.jobs.lock().unwrap().insert(id.clone(), Arc::clone(&job));
 
         let watcher = Arc::clone(&job);

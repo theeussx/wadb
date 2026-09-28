@@ -77,7 +77,7 @@ impl Settings {
             ));
         }
         if let Some(s) = self.auto_refresh_secs {
-            if *s < 2 || *s > 300 {
+            if s < 2 || s > 300 {
                 return Err(AppError::new(
                     ErrorCode::InvalidArgument,
                     format!("auto_refresh_secs out of range: {s}"),

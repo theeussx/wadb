@@ -123,7 +123,13 @@ pub fn pick_path(app: AppHandle, kind: String) -> Result<Option<String>, AppErro
         "directory" => app.dialog().file().blocking_pick_folder(),
         _ => app.dialog().file().blocking_pick_file(),
     };
-    Ok(picked.map(|p| p.to_string_lossy().to_string()))
+    // `FilePath` is an enum (`Path` | `Url`): prefer the filesystem path and
+    // fall back to its display form (URLs only happen on mobile targets).
+    Ok(picked.map(|p| {
+        p.as_path()
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_else(|| p.to_string())
+    }))
 }
 
 /// Opens a file/folder with the system handler (xdg-open).

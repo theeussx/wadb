@@ -6,7 +6,7 @@ use std::fmt;
 /// The frontend maps each code to a localized, human friendly message and
 /// keeps `details` available behind "Ver detalhes técnicos". This keeps the
 /// Rust layer 100% language neutral (i18n is a frontend concern).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ErrorCode {
     AdbNotFound,

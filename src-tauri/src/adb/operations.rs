@@ -57,6 +57,10 @@ pub enum DeviceOperation {
     // ---- media -----------------------------------------------------------
     Screenshot,
     // ---- packages ---------------------------------------------------------
+    // NOTE: enum-level `rename_all` only renames variants, not struct fields
+    // (serde has a separate `rename_all_fields` for that), so the multi-word
+    // field below needs its own rule to match the frontend (`thirdParty`).
+    #[serde(rename_all = "camelCase")]
     ListPackages {
         third_party: bool,
         disabled: bool,
@@ -328,7 +332,7 @@ impl DeviceOperation {
                 Ok(vec!["disconnect".into(), format!("{host}:{port}")])
             }
             O::Reboot { target } => {
-                let s = self.require_serial(serial, true)?.unwrap();
+                let s = Self::require_serial(serial, true)?.unwrap();
                 Ok(vec![
                     "-s".into(),
                     s,
@@ -337,7 +341,7 @@ impl DeviceOperation {
                 ])
             }
             O::Screenshot => {
-                let s = self.require_serial(serial, true)?.unwrap();
+                let s = Self::require_serial(serial, true)?.unwrap();
                 Ok(vec![
                     "-s".into(),
                     s,
@@ -347,7 +351,7 @@ impl DeviceOperation {
                 ])
             }
             O::Push { local, remote } => {
-                let s = self.require_serial(serial, true)?.unwrap();
+                let s = Self::require_serial(serial, true)?.unwrap();
                 Ok(vec![
                     "-s".into(),
                     s,
@@ -357,7 +361,7 @@ impl DeviceOperation {
                 ])
             }
             O::Pull { remote, local } => {
-                let s = self.require_serial(serial, true)?.unwrap();
+                let s = Self::require_serial(serial, true)?.unwrap();
                 Ok(vec![
                     "-s".into(),
                     s,
@@ -367,7 +371,7 @@ impl DeviceOperation {
                 ])
             }
             O::InstallApk { local } => {
-                let s = self.require_serial(serial, true)?.unwrap();
+                let s = Self::require_serial(serial, true)?.unwrap();
                 Ok(vec!["-s".into(), s, "install".into(), "-r".into(), local.clone()])
             }
             O::ListPackages { .. }

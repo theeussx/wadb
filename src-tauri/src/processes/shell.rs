@@ -49,7 +49,7 @@ impl ShellManager {
         id: &str,
         adb: &str,
         serial: &str,
-        on_line: Box<dyn Fn(String) + Send + Sync + 'static>,
+        on_line: Arc<dyn Fn(String) + Send + Sync + 'static>,
     ) -> Result<Arc<StreamHandle>, AppError> {
         validate_serial(serial)?;
         if self.sessions.lock().unwrap().contains_key(id) {
@@ -133,7 +133,7 @@ mod tests {
         let m = ShellManager::new();
         let on_line = |_l: String| {};
         let err = m
-            .open("sh1", "/bin/echo", "bad;rm -rf /", Box::new(on_line))
+            .open("sh1", "/bin/echo", "bad;rm -rf /", Arc::new(on_line))
             .expect_err("invalid serial must be rejected");
         assert_eq!(err.code, ErrorCode::InvalidSerial);
     }
@@ -144,7 +144,7 @@ mod tests {
         for bad in ["a b", "a|b", "a&b", "$(x)", "`x`", "a\nb", "a/b"] {
             let on_line = |_l: String| {};
             let err = m
-                .open("shX", "/bin/echo", bad, Box::new(on_line))
+                .open("shX", "/bin/echo", bad, Arc::new(on_line))
                 .expect_err("must reject");
             assert_eq!(err.code, ErrorCode::InvalidSerial, "serial {bad:?} accepted?");
         }
@@ -156,7 +156,7 @@ mod tests {
         let on_line = |_l: String| {};
         // /bin/cat with stdin as a stand-in for `adb shell` (same shape:
         // writes go to stdin, output comes on stdout).
-        let h = m.open("sh1", "/bin/cat", "192.168.1.50:5555", Box::new(on_line)).unwrap();
+        let h = m.open("sh1", "/bin/cat", "192.168.1.50:5555", Arc::new(on_line)).unwrap();
         m.write("sh1", "hi\n").unwrap();
         assert_eq!(m.list().len(), 1);
         m.close("sh1").unwrap();

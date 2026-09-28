@@ -11,7 +11,7 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-#[serde(rename_all = "UPPERCASE")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RiskLevel {
     Safe = 0,
     LowRisk = 1,
@@ -152,9 +152,12 @@ pub fn classify_package(pkg: &str) -> RiskLevel {
     if SAFE.contains(&pkg) {
         return RiskLevel::Safe;
     }
-    for (prefix, level) in PREFIX_RULES {
-        if pkg == prefix || pkg.starts_with(&format!("{prefix}.")) {
-            return *level;
+    for &(prefix, level) in PREFIX_RULES {
+        // Entries ending in '.' are true namespace prefixes; the rest match
+        // exactly or as a namespace root (`pkg == prefix` covers equality,
+        // `starts_with` covers everything below it).
+        if pkg == prefix || pkg.starts_with(prefix) {
+            return level;
         }
     }
     RiskLevel::Unknown

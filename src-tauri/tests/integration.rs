@@ -20,14 +20,15 @@ fn fake_adb() -> std::path::PathBuf {
     let fake = dir.join("fake-adb");
     let content = r#"#!/bin/sh
 # minimal adb emulator for integration tests
-cmd=""
-args=""
+# skip leading "-s SERIAL" pairs, then the first remaining word is the command
 while [ $# -gt 0 ]; do
   case "$1" in
-    -s) shift; shift ;;        # skip "-s SERIAL"
-    *) cmd="$1"; shift ;;
+    -s) shift; shift 2>/dev/null || true ;;
+    *) break ;;
   esac
 done
+cmd="$1"
+shift 2>/dev/null || true
 case "$cmd" in
   devices)
     echo "List of devices attached"
@@ -77,7 +78,7 @@ case "$cmd" in
     printf '\x89PNG\r\n\x1a\n'
     ;;
   connect)
-    echo "connected to $2"
+    echo "connected to $1"
     ;;
   *)
     echo ""

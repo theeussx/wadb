@@ -212,7 +212,8 @@ mod tests {
         assert!(validate_package("com.foo;rm").is_err());
         assert!(validate_package("com..foo").is_err());
         assert!(validate_package("1com.foo").is_err());
-        assert!(validate_package("com.1foo").is_ok());
+        // Every segment must start with a letter (documented above).
+        assert!(validate_package("com.1foo").is_err());
     }
 
     #[test]

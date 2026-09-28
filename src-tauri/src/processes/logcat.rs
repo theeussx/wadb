@@ -38,7 +38,7 @@ impl LogcatManager {
         adb: &str,
         serial: &str,
         spec: Option<&str>,
-        on_line: Box<dyn Fn(String) + Send + Sync + 'static>,
+        on_line: Arc<dyn Fn(String) + Send + Sync + 'static>,
     ) -> Result<Arc<StreamHandle>, AppError> {
         validate_serial(serial)?;
 
@@ -140,7 +140,7 @@ mod tests {
         let m = LogcatManager::new();
         let on_line = |_l: String| {};
         let err = m
-            .open("lc1", "/bin/echo", "x;reboot", None, Box::new(on_line))
+            .open("lc1", "/bin/echo", "x;reboot", None, Arc::new(on_line))
             .expect_err("must reject");
         assert_eq!(err.code, ErrorCode::InvalidSerial);
     }
