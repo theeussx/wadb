@@ -231,6 +231,7 @@ export class MockBridge implements Bridge {
   private scrcpyPid = 0;
   private shellCounter = 0;
   private logcatCounter = 0;
+  private logcatTimers = new Map<string, ReturnType<typeof setInterval>>();
   private transferCounter = 0;
   private audit: AuditEntry[] = [
     {
@@ -723,13 +724,14 @@ export class MockBridge implements Bridge {
         line: `${time}.${frac}  1234  5678 ${level} ${tag}: ${msgs[n % msgs.length]}\n`,
       });
     }, 400);
-    this.timers.add(t);
+    this.logcatTimers.set(id, t);
     return id;
   }
 
   async logcatStop(id: string): Promise<void> {
-    for (const t of this.timers) clearInterval(t);
-    this.timers.clear();
+    const timer = this.logcatTimers.get(id);
+    if (timer) clearInterval(timer);
+    this.logcatTimers.delete(id);
     this.emit('logcat-line', { session: id, line: '[logcat encerrado]\n' });
   }
 

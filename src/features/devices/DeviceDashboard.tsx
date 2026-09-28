@@ -47,7 +47,9 @@ function OverviewPanel({ serial }: { serial: string }) {
     if (i.ok) setInfo(i.value);
     else setError(i.error);
     if (b.ok) setBattery(b.value);
+    else if (i.ok) setError(b.error);
     if (st.ok) setStorage(st.value);
+    else if (i.ok && b.ok) setError(st.error);
     setLoading(false);
   }, [serial]);
 
@@ -113,13 +115,13 @@ function OverviewPanel({ serial }: { serial: string }) {
             <KV k={t('dash.health')} v={battery.health} />
             <KV
               k={t('dash.charging')}
-              v={battery.plugged ? (battery.plugged === '1' ? 'USB' : battery.plugged === '2' ? 'AC' : battery.plugged) : null}
+              v={battery.plugged ? (battery.plugged === '2' ? 'USB' : battery.plugged === '1' ? 'AC' : battery.plugged) : null}
             />
             <KV k="Voltagem" v={battery.voltageMv != null ? `${battery.voltageMv} mV` : null} />
             <KV k="Tecnologia" v={battery.technology} />
           </div>
         ) : (
-          <Spinner />
+          loading ? <Spinner /> : <span className="dim small">{t('common.error')} — {t('common.retry')}</span>
         )}
       </div>
 
@@ -143,7 +145,7 @@ function OverviewPanel({ serial }: { serial: string }) {
             </div>
           </>
         ) : (
-          <Spinner />
+          loading ? <Spinner /> : <span className="dim small">{t('common.error')} — {t('common.retry')}</span>
         )}
         <div className="row mt-12">
           <Button variant="primary" size="small" onClick={() => screenshot(false)}>
@@ -271,11 +273,11 @@ export function DeviceDashboard() {
       </div>
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {tab === 'overview' && <OverviewPanel serial={serial} />}
+        {tab === 'overview' && <OverviewPanel key={serial} serial={serial} />}
         {tab === 'screen' && <ScreenPanel serial={serial} />}
         {tab === 'apps' && <AppsView serial={serial} />}
         {tab === 'files' && <FilesView serial={serial} />}
-        {tab === 'shell' && <ShellView serial={serial} />}
+        {tab === 'shell' && <ShellView key={serial} serial={serial} />}
         {tab === 'logs' && <LogsView serial={serial} />}
         {tab === 'diagnostics' && <DiagnosticsView serial={serial} />}
         {tab === 'debloat' && <DebloatView serial={serial} />}

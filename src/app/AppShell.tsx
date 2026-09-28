@@ -1,5 +1,6 @@
 // App frame: sidebar (nav + tool status), topbar, routed content.
 
+import { isTauri } from '../services/bridge';
 import { APP, SHORTCUTS } from '../config/app';
 import { useShortcuts } from '../hooks/useShortcuts';
 import { useApp, type Nav } from '../stores/app';
@@ -125,6 +126,9 @@ export function AppShell() {
           </div>
         )}
 
+        {!isDemo && !isTauri() && (
+          <div className="banner" role="note">{t('local.banner')}</div>
+        )}
         <div className="content">
           {nav === 'devices' &&
             (selected ? <DeviceDashboard /> : <DeviceList />)}

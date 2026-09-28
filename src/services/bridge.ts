@@ -2,8 +2,10 @@
 //
 // - Inside Tauri: every call is a typed command on the Rust side; the
 //   frontend NEVER executes shell (no shell plugin exists at all).
-// - Outside Tauri (plain browser / CI): a Mock backend implements the same
-//   interface so the GUI is fully usable in demo mode and in UI tests.
+// - Browser development: same-origin Node service executes local ADB.
+// - Explicit demo mode, static preview and CI use MockBridge.
+
+import { DEFAULT_SETTINGS } from '../config/app';
 
 import type {
   AppError,
@@ -171,29 +173,9 @@ export function asAppError(e: unknown, fallbackCode = 'UNEXPECTED'): AppError {
 
 class TauriBridge implements Bridge {
   readonly isDemo = false;
-  private invoke:
-    | (<T = unknown>(cmd: string, args?: Record<string, unknown>) => Promise<T>)
-    | null = null;
-
-  constructor() {
-    // Dynamic import keeps plain-browser mode free of Tauri internals.
-    void import('@tauri-apps/api/core')
-      .then((m) => {
-        this.invoke = m.invoke as typeof this.invoke;
-      })
-      .catch(() => {
-        /* not in Tauri */
-      });
-  }
-
-  private async call<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
-    if (!this.invoke) {
-      throw Object.assign(new Error('Tauri IPC not ready'), {
-        code: 'UNEXPECTED',
-        details: 'tauri api not loaded',
-      });
-    }
-    return this.invoke<T>(cmd, args);
+  protected async call<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return invoke<T>(cmd, args);
   }
 
   detectTools() {
@@ -399,14 +381,62 @@ class TauriBridge implements Bridge {
 
   on(event: BackendEvent, cb: (payload: unknown) => void): Unsubscribe {
     let cancel: (() => void) | undefined;
+    let disposed = false;
     void import('@tauri-apps/api/event')
-      .then((m) => m.listen(event, (e) => cb(e.payload)))
-      .then((un) => {
-        cancel = un;
-      })
+      .then((m) => m.listen(event, (e) => { if (!disposed) cb(e.payload); }))
+      .then((un) => { if (disposed) un(); else cancel = un; })
       .catch(() => {});
+    return () => { disposed = true; cancel?.(); };
+  }
+
+}
+
+// Browser development uses the same-origin local service, never mock device data.
+class LocalBridge extends TauriBridge {
+  private ids = new Set<string>();
+  private listeners = new Map<BackendEvent, Set<(payload: unknown) => void>>();
+  private timer: ReturnType<typeof setTimeout> | undefined;
+
+  protected async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
+    if (command === 'get_settings') {
+      try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('wadb-settings') || '{}') } as T; }
+      catch { return { ...DEFAULT_SETTINGS } as T; }
+    }
+    if (command === 'save_settings') { localStorage.setItem('wadb-settings', JSON.stringify(args.settings)); return args.settings as T; }
+    if (command === 'save_log_file') {
+      const url = URL.createObjectURL(new Blob([String(args.content)], { type: 'text/plain;charset=utf-8' }));
+      const link = document.createElement('a'); link.href = url; link.download = String(args.path).split(/[\\/]/).pop() || 'logcat.txt';
+      link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); return undefined as T;
+    }
+    let response: Response;
+    try {
+      response = await fetch('/api/adb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Wadb-Client': 'local' }, body: JSON.stringify({ command, args }), signal: AbortSignal.timeout(30000) });
+    } catch { throw { code: 'LOCAL_UNAVAILABLE', details: 'Serviço local indisponível. Confira o terminal e execute npm run dev.' }; }
+    const result = await response.json();
+    if (!response.ok) throw result;
+    if (command === 'shell_open') this.ids.add(result.value.id);
+    if (command === 'logcat_start') this.ids.add(result.value);
+    if (command === 'shell_close' || command === 'logcat_stop') this.ids.delete(String(args.id));
+    return result.value as T;
+  }
+
+  on(event: BackendEvent, cb: (payload: unknown) => void): Unsubscribe {
+    const callbacks = this.listeners.get(event) ?? new Set();
+    callbacks.add(cb); this.listeners.set(event, callbacks);
+    const poll = async () => {
+      try {
+        if (this.ids.size) {
+          const events = await this.call<{ event: BackendEvent; payload: unknown }[]>('poll_events', { ids: [...this.ids] });
+          for (const e of events) this.listeners.get(e.event)?.forEach((fn) => fn(e.payload));
+        }
+      } catch { /* Requests from UI expose errors; transient event failures retry. */ }
+      if (this.listeners.size) this.timer = setTimeout(poll, 250);
+      else this.timer = undefined;
+    };
+    if (this.timer === undefined) this.timer = setTimeout(poll, 0);
     return () => {
-      void cancel?.();
+      callbacks.delete(cb);
+      if (!callbacks.size) this.listeners.delete(event);
     };
   }
 }
@@ -417,7 +447,7 @@ let bridge: Bridge | null = null;
 
 export function getBridge(): Bridge {
   if (!bridge) {
-    bridge = isTauri() ? new TauriBridge() : new MockBridge();
+    bridge = isTauri() ? new TauriBridge() : import.meta.env.DEV && import.meta.env.MODE !== 'demo' && import.meta.env.MODE !== 'test' ? new LocalBridge() : new MockBridge();
   }
   return bridge;
 }

@@ -2,7 +2,7 @@
 
 ## Toolchain
 
-- **Node** ≥ 20 (LTR), **Rust** estável (edition 2021). Instale o Rust pelo [rustup](https://rustup.rs/) e abra um novo terminal para carregar o `cargo` no `PATH`. O `tauri-cli` v2 é instalado como dependência de desenvolvimento pelo `npm install`.
+- **Node** 20.19+ ou 22.12+, **Rust** estável (edition 2021). Instale o Rust pelo [rustup](https://rustup.rs/) e abra um novo terminal para carregar o `cargo` no `PATH`. O `tauri-cli` v2 é instalado como dependência de desenvolvimento pelo `npm install`.
 - **Dependências de sistema do Tauri 2 (Debian/Ubuntu):**
   ```bash
   sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
@@ -24,7 +24,9 @@ npm install
 
 | Comando | O que faz |
 |---|---|
-| `npm run dev` | Frontend no navegador em `http://localhost:1420` (**modo demo**: dispositivos simulados via `MockBridge`). |
+| `npm run dev` | Frontend e API ADB local em `http://localhost:1420`; suporte inicial a dispositivos, informações, lista de apps, shell e logs. Ver limites no README. |
+| `npm run dev:demo` | Demonstração no navegador, sem ADB. |
+| `npm run check` | TypeScript, build e testes JavaScript/TypeScript. |
 | `npm run tauri:dev` | App desktop completo (frontend + Rust), porta 1420. |
 | `npm run tauri:build` | Bundle release: **AppImage** e **.deb** em `src-tauri/target/release/bundle/`. |
 | `npm test` | Testes do frontend (vitest): i18n, presets, MockBridge, diálogo de confirmação. |
@@ -55,7 +57,7 @@ O bundle principal é AppImage + .deb (`tauri.conf.json → bundle.targets`). Pa
 
 - **Log do app:** `~/.local/share/com.wadb.adb-studio/logs/adb-studio.log` (limitado a 2 MB).
 - **Auditoria:** `~/.config/com.wadb.adb-studio/audit.jsonl` (JSONL, 5.000 linhas) — é a fonte da aba Histórico → Reverter.
-- **Modo demo no navegador** é o caminho mais rápido para iterar na UI sem Rust: `npm run dev`.
+- **Modo demo no navegador** é o caminho mais rápido para iterar na UI sem Rust: `npm run dev:demo`.
 - Para testar sem aparelho real, a suíte de integração Rust usa um `fake-adb` (shell script) em `src-tauri/tests/integration.rs` — veja os testes de segurança (serial malicioso, injeção de argv) lá.
 
 ## Performance

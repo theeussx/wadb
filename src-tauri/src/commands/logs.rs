@@ -8,6 +8,7 @@ use tauri::Emitter;
 use tauri::State;
 
 use crate::processes::validate_logcat_spec;
+use crate::error::AppError;
 
 use super::AppState;
 

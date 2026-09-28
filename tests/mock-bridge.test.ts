@@ -233,3 +233,24 @@ describe('MockBridge: settings round-trip', () => {
     expect(desc).toContain("adb -s 23021RAA2Y shell ls -la '/sdcard/Download'");
   });
 });
+
+it('stopping one logcat session does not stop another', async () => {
+  vi.useFakeTimers();
+  const b = new MockBridge();
+  try {
+    const first = b.logcatStart('23021RAA2Y');
+    await vi.advanceTimersByTimeAsync(150);
+    const id1 = await first;
+    const second = b.logcatStart('23021RAA2Y');
+    await vi.advanceTimersByTimeAsync(150);
+    const id2 = await second;
+    await b.logcatStop(id1);
+    const receive = vi.fn();
+    const off = b.on('logcat-line', receive);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(receive).toHaveBeenCalledWith(expect.objectContaining({ session: id2 }));
+    expect(receive).not.toHaveBeenCalledWith(expect.objectContaining({ session: id1 }));
+    off();
+    await b.logcatStop(id2);
+  } finally { vi.clearAllTimers(); vi.useRealTimers(); }
+});

@@ -1,12 +1,13 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { localBackend } from './server/local';
 
 // Tauri expects a fixed dev port (1420). For the web preview we bind 0.0.0.0.
 const host = '0.0.0.0';
 const port = 1420;
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), ...(mode === 'demo' || mode === 'test' ? [] : [localBackend()])],
   base: './',
   clearScreen: false,
   server: {
@@ -32,4 +33,4 @@ export default defineConfig({
     setupFiles: ['tests/setup.ts'],
     css: false,
   },
-});
+}));

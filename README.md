@@ -3,7 +3,7 @@
 Ferramenta **Linux** leve e **local-first** para trabalhar com **ADB**, **scrcpy** e **fastboot** via interface gráfica: gerenciamento de dispositivos, shell, screenshots, espelhamento de tela, gestão de aplicativos (incluindo debloat com classificação de risco), transferência de arquivos, logcat, diagnóstico, auditoria e histórico.
 
 - **Stack:** Tauri 2 + Rust (backend) · React + TypeScript + Vite (frontend) · CSS puro
-- **Filosofia:** o backend Rust é a única coisa que executa processos; o frontend nunca toca shell. Nenhum dado sai da máquina: sem telemetria, nuvem, contas ou servidores locais.
+- **Filosofia:** o frontend não executa processos. O desktop usa Rust; o desenvolvimento no navegador usa um serviço Node integrado ao Vite para executar ADB localmente. Sem telemetria, nuvem ou contas.
 - **Hardware-alvo:** laptops com 2 GB de RAM (modos de desempenho `low` e `ultra`).
 
 > **V0.1 (este repositório):** detecção de ferramentas, lista de dispositivos com estados, informações do dispositivo, shell, screenshot, integração scrcpy, instalação/extração de APK, testes e documentação. V0.2/V0.3 estendem (perfil de risco por perfil, fastboot estendido, i18n adicional).
@@ -46,14 +46,32 @@ Ferramenta **Linux** leve e **local-first** para trabalhar com **ADB**, **scrcpy
 
 ## Uso
 
-### Demo no navegador (sem Tauri)
+### Navegador com ADB real (Linux)
+
+Requer Node 20.19+ ou 22.12+ e ADB no `PATH`. Não precisa de Rust ou Tauri.
 
 ```bash
-npm install
-npm run dev        # http://localhost:1420 — banner "Modo demonstração"
+sudo apt install adb
+npm ci
+adb devices -l     # conecte por USB, ative depuração USB e aceite a chave RSA
+npm run dev        # abra http://localhost:1420 (ou a porta indicada no terminal)
 ```
 
-O modo demo usa o mesmo contrato do backend (MockBridge) com dispositivos simulados — útil para testar a UI sem aparelho.
+**Disponível nesta etapa:** detectar ferramentas, listar dispositivos reais, consultar informações/bateria/armazenamento, listar aplicativos, shell interativo, logcat com pesquisa/pausa e download do log. Configurações da interface ficam no navegador. Caminhos personalizados de ferramentas ainda não são usados pelo serviço local: ele usa o `PATH`.
+
+**Ainda exigem o desktop:** transferências/gerenciamento de arquivos, ações sobre aplicativos, screenshot, scrcpy, rede/diagnósticos avançados, debloat, auditoria e fastboot. Essas chamadas retornam uma mensagem explícita; não são simuladas. O shell executa comandos reais no Android selecionado: use com cuidado.
+
+O serviço é integrado ao Vite e inicia com o mesmo comando. A API só aceita requisições JSON da própria origem `localhost`/loopback, com cabeçalho específico. Não exponha o servidor por túnel/rede pública; o acesso remoto à API é recusado. Sessões sem atividade expiram após cerca de um minuto. Para conectar por Wi-Fi nesta etapa, use `adb connect IP:PORTA` no terminal e atualize a lista.
+
+Se aparecer `unauthorized`, desbloqueie o aparelho e aceite a autorização. Se `adb devices -l` não listar o aparelho, confira cabo, modo USB e regras udev antes de abrir o app.
+
+### Demonstração sem dispositivo
+
+```bash
+npm run dev:demo
+```
+
+Usa dados simulados e exibe o banner de demonstração. `npm run preview` também é somente demonstração; o serviço ADB não é incluído no build estático.
 
 ### Aplicativo desktop
 
@@ -65,6 +83,7 @@ npm run tauri:build # gera AppImage + .deb em src-tauri/target/release/bundle/
 ### Testes
 
 ```bash
+npm run check       # TypeScript + build + testes
 npm test            # vitest (i18n, presets, mock bridge, diálogo de confirmação)
 cd src-tauri && cargo test   # Rust (parsers, allowlist, segurança, processos, integração fake-adb)
 ```
