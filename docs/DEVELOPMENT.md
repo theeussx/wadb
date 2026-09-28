@@ -2,8 +2,7 @@
 
 ## Toolchain
 
-- **Node** ≥ 20 (LTR)
-- **Rust** estável (edition 2021), `tauri-cli`: `cargo install tauri-cli --version "^2" --no-default-features --features build`
+- **Node** ≥ 20 (LTR), **Rust** estável (edition 2021). Instale o Rust pelo [rustup](https://rustup.rs/) e abra um novo terminal para carregar o `cargo` no `PATH`. O `tauri-cli` v2 é instalado como dependência de desenvolvimento pelo `npm install`.
 - **Dependências de sistema do Tauri 2 (Debian/Ubuntu):**
   ```bash
   sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
