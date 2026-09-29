@@ -8,12 +8,56 @@ use tauri::State;
 
 use crate::adb::ToolKind;
 use crate::error::{AppError, ErrorCode};
-use crate::processes::spawn_streamed;
-use crate::scrcpy::{ScrcpyOptions, ScrcpyStatus};
+use crate::processes::{run_captured, spawn_streamed};
+use crate::scrcpy::{parse_version, supports_android_15, ScrcpyOptions, ScrcpyStatus, MIN_ANDROID_15_VERSION};
+use crate::security::validate_serial;
 
 use super::{media, AppState};
 
 const SCRCPY_ID: &str = "scrcpy";
+
+fn check_scrcpy_compatibility(scrcpy_bin: &str) -> Result<(), AppError> {
+    let output = run_captured(
+        scrcpy_bin,
+        &["--version".to_string()],
+        std::time::Duration::from_secs(5),
+    )?;
+    let version_text = format!("{} {}", output.text(), output.stderr);
+    let Some(version) = parse_version(&version_text) else {
+        // Unknown version output should not make an otherwise usable custom
+        // build unusable. The process itself will report any real failure.
+        return Ok(());
+    };
+    if supports_android_15(version) {
+        return Ok(());
+    }
+    Err(AppError::new(
+        ErrorCode::ScrcpyIncompatible,
+        format!(
+            "Detected scrcpy {major}.{minor}.{patch}; Android 15 requires scrcpy >= {}.{}.{}. Upgrade from the official release: https://github.com/Genymobile/scrcpy/releases",
+            MIN_ANDROID_15_VERSION.0,
+            MIN_ANDROID_15_VERSION.1,
+            MIN_ANDROID_15_VERSION.2,
+            major = version.0,
+            minor = version.1,
+            patch = version.2,
+        ),
+    ))
+}
+
+fn is_android_15_or_newer(adb_bin: &str, serial: &str) -> bool {
+    let args = vec![
+        "-s".to_string(),
+        serial.to_string(),
+        "shell".to_string(),
+        "getprop".to_string(),
+        "ro.build.version.sdk".to_string(),
+    ];
+    let Ok(output) = run_captured(adb_bin, &args, std::time::Duration::from_secs(5)) else {
+        return false;
+    };
+    output.text().trim().parse::<u32>().is_ok_and(|sdk| sdk >= 35)
+}
 
 #[tauri::command]
 pub fn scrcpy_start(
@@ -24,9 +68,19 @@ pub fn scrcpy_start(
 ) -> Result<ScrcpyStatus, AppError> {
     let st = state.inner().clone();
     let s = st.settings.load();
+    validate_serial(&serial)?;
     let scrcpy_bin = st
         .tools
         .require(ToolKind::Scrcpy, s.scrcpy_path.as_deref())?;
+
+    // Do this before spawning the long-running process. Ubuntu/Debian often
+    // expose scrcpy 1.25, whose bundled server crashes on Android 15 with
+    // SurfaceControl and Clipboard NoSuchMethodException errors.
+    if let Ok(adb_bin) = st.tools.require(ToolKind::Adb, s.adb_path.as_deref()) {
+        if is_android_15_or_newer(&adb_bin, &serial) {
+            check_scrcpy_compatibility(&scrcpy_bin)?;
+        }
+    }
 
     if st.registry.is_running(SCRCPY_ID) {
         return Err(AppError::new(

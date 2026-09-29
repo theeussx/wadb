@@ -29,6 +29,7 @@ pub enum ErrorCode {
     AlreadyRunning,
     OperationRejected,
     ProcessFailed,
+    ScrcpyIncompatible,
     Unsupported,
     Unexpected,
 }
@@ -128,6 +129,7 @@ impl ErrorCode {
             AlreadyRunning => "ALREADY_RUNNING",
             OperationRejected => "OPERATION_REJECTED",
             ProcessFailed => "PROCESS_FAILED",
+            ScrcpyIncompatible => "SCRCPY_INCOMPATIBLE",
             Unsupported => "UNSUPPORTED",
             Unexpected => "UNEXPECTED",
         }

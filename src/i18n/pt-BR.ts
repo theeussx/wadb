@@ -24,7 +24,7 @@ const ptBR: Record<string, string> = {
   'tools.instructions.adb':
     'Instale as platform-tools: `sudo apt install adb` (Debian/Ubuntu) ou baixe de developer.android.com. Defina o caminho em Configurações → ADB.',
   'tools.instructions.scrcpy':
-    'Instale o scrcpy: `sudo apt install scrcpy` ou baixe um release oficial de GitHub (Genymobile/scrcpy). Defina o caminho em Configurações → scrcpy.',
+    'Para Android 15, instale scrcpy 3.2 ou mais recente pelo release oficial de GitHub (Genymobile/scrcpy); o pacote `apt` pode ser antigo. Defina o caminho em Configurações → scrcpy.',
   'tools.instructions.fastboot':
     'O fastboot vem com as platform-tools: `sudo apt install adb`. Defina o caminho em Configurações → fastboot.',
   'tools.version': 'versão',
@@ -429,6 +429,8 @@ const ptBR: Record<string, string> = {
   'errors.OPERATION_REJECTED': 'A operação foi rejeitada.',
   'errors.PROCESS_FAILED':
     'A operação não foi concluída. O dispositivo pode ter rejeitado ou falhado na execução. Veja os detalhes técnicos.',
+  'errors.SCRCPY_INCOMPATIBLE':
+    'Esta versão do scrcpy não é compatível com Android 15. Instale o scrcpy 3.2 ou mais recente pelo release oficial.',
   'errors.UNSUPPORTED': 'Operação não suportada neste sistema.',
   'errors.UNEXPECTED': 'Erro inesperado. Veja os detalhes técnicos.',
 

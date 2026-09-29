@@ -41,7 +41,7 @@ Ferramenta **Linux** leve e **local-first** para trabalhar com **ADB**, **scrcpy
 
 - **Linux** (Wayland ou X11; distros base Debian/Ubuntu — ver `docs/DEVELOPMENT.md`)
 - `adb` (platform-tools) — `sudo apt install adb`
-- `scrcpy` (opcional para a aba Tela) — `sudo apt install scrcpy`
+- `scrcpy` (opcional para a aba Tela) — scrcpy **3.2+** é necessário para Android 15; prefira o [release oficial](https://github.com/Genymobile/scrcpy/releases), pois `apt install scrcpy` pode instalar a versão antiga 1.25.
 - Autorização ADB padrão (RSA): o app **nunca** burla a autorização; dispositivos `unauthorized` mostram o aviso.
 
 ## Uso
