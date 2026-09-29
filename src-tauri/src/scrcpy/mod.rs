@@ -161,7 +161,8 @@ impl ScrcpyOptions {
             a.push(fps.to_string());
         }
         if let Some(b) = &self.bitrate {
-            a.push("--bit-rate".into());
+            // scrcpy 3.3 removed the ambiguous --bit-rate alias.
+            a.push("--video-bit-rate".into());
             a.push(b.clone());
         }
         // Note: scrcpy follows the device orientation on its own and has no
@@ -237,7 +238,7 @@ mod tests {
                 "1280",
                 "--max-fps",
                 "30",
-                "--bit-rate",
+                "--video-bit-rate",
                 "2M",
                 "--turn-screen-off",
                 "--record",
