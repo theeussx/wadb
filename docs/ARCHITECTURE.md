@@ -67,6 +67,7 @@ Exemplos de argv produzidos:
 ## scrcpy
 
 - Registro próprio de processo (id fixo `scrcpy`); um por vez (`ALREADY_RUNNING`).
+- Antes de iniciar, o backend executa `scrcpy --version` e rejeita versões anteriores a **3.2**, que não suportam corretamente as mudanças do Android 15 (`SCRCPY_INCOMPATIBLE`). O ADB Studio não reimplementa nem substitui o `scrcpy-server`; a correção é usar o release oficial atualizado.
 - **Presets preenchem lacunas** — se o usuário personaliza, vira `custom` e o app não sobrescreve.
 - Flags: `--max-size`, `--max-fps`, `--bit-rate`, `--turn-screen-off`, `--always-on-top`, `--audio`, `--record` (orientação é seguida do aparelho; scrcpy não tem flag de orientação estável).
 - Gravação **nunca sobrescreve**: sufixo `-1`..`-99` se o arquivo existir.

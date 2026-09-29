@@ -16,6 +16,30 @@ use serde::{Deserialize, Serialize};
 use crate::error::{AppError, ErrorCode};
 use crate::security::{validate_bitrate, validate_local_path, validate_serial};
 
+/// scrcpy 3.2 contains the upstream fixes for Android 15 framework changes.
+/// Older binaries (including Ubuntu/Debian's 1.25 package) can fail before
+/// the video stream starts with SurfaceControl/Clipboard NoSuchMethodException.
+pub const MIN_ANDROID_15_VERSION: (u32, u32, u32) = (3, 2, 0);
+
+pub fn parse_version(text: &str) -> Option<(u32, u32, u32)> {
+    let token = text
+        .split_whitespace()
+        .find(|part| part.starts_with('v') || part.chars().next().is_some_and(|c| c.is_ascii_digit()))?;
+    let token = token.trim_start_matches('v');
+    let mut parts = token.split('.').map(|part| {
+        part.chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .parse::<u32>()
+            .ok()
+    });
+    Some((parts.next()??, parts.next().unwrap_or(Some(0))?, parts.next().unwrap_or(Some(0))?))
+}
+
+pub fn supports_android_15(version: (u32, u32, u32)) -> bool {
+    version >= MIN_ANDROID_15_VERSION
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScrcpyOptions {
@@ -247,5 +271,21 @@ mod tests {
     fn serial_is_validated() {
         let o = ScrcpyOptions::default();
         assert!(o.to_args("bad;serial").is_err());
+    }
+
+    #[test]
+    fn parses_scrcpy_versions() {
+        assert_eq!(parse_version("scrcpy 1.25"), Some((1, 25, 0)));
+        assert_eq!(parse_version("scrcpy v3.2"), Some((3, 2, 0)));
+        assert_eq!(parse_version("scrcpy 4.1"), Some((4, 1, 0)));
+        assert_eq!(parse_version("not a version"), None);
+    }
+
+    #[test]
+    fn android_15_requires_upstream_fix() {
+        assert!(!supports_android_15((1, 25, 0)));
+        assert!(!supports_android_15((3, 1, 0)));
+        assert!(supports_android_15((3, 2, 0)));
+        assert!(supports_android_15((4, 1, 0)));
     }
 }
