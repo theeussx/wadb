@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn append_and_read_reversed() {
-        let dir = std::env::temp_dir().join(format!("adb-studio-audit-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("zittodb-audit-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         let log = AuditLog::open(&dir, true);
         log.append(entry(1));
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn disabled_log_writes_nothing() {
-        let dir = std::env::temp_dir().join(format!("adb-studio-audit2-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("zittodb-audit2-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         let log = AuditLog::open(&dir, false);
         log.append(entry(1));
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn corrupt_lines_are_skipped() {
-        let dir = std::env::temp_dir().join(format!("adb-studio-audit3-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("zittodb-audit3-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         let log = AuditLog::open(&dir, true);
         log.append(entry(1));

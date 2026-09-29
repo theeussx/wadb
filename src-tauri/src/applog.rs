@@ -40,7 +40,7 @@ pub struct AppLog {
 impl AppLog {
     pub fn open(log_dir: &Path) -> std::io::Result<AppLog> {
         fs::create_dir_all(log_dir)?;
-        let path = log_dir.join("adb-studio.log");
+        let path = log_dir.join("zittodb.log");
         let file = OpenOptions::new().create(true).append(true).open(&path)?;
         Ok(AppLog {
             file: Mutex::new(Some(file)),

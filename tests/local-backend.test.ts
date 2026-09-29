@@ -21,13 +21,13 @@ it('rejects unsafe serials', () => {
   expect(validSerial('192.168.1.2:5555')).toBe('192.168.1.2:5555');
 });
 it('blocks foreign origins and requests without the client header', async () => {
-  for (const headers of ([{ Origin: 'http://evil.example', 'X-Wadb-Client': 'local' }, { Origin: base }] as Record<string, string>[])) {
+  for (const headers of ([{ Origin: 'http://evil.example', 'X-Zittodb-Client': 'local' }, { Origin: base }] as Record<string, string>[])) {
     const res = await fetch(`${base}/api/adb`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: '{}' });
     expect(res.status).toBe(403);
   }
 });
 it('returns an explicit error instead of simulating unsupported operations', async () => {
-  const res = await fetch(`${base}/api/adb`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base, 'X-Wadb-Client': 'local' }, body: JSON.stringify({ command: 'execute_operation', args: {} }) });
+  const res = await fetch(`${base}/api/adb`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base, 'X-Zittodb-Client': 'local' }, body: JSON.stringify({ command: 'execute_operation', args: {} }) });
   expect(res.status).toBe(400);
   expect((await res.json()).code).toBe('UNSUPPORTED_LOCAL');
 });

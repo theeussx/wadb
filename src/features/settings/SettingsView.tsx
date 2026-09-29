@@ -193,7 +193,7 @@ export function SettingsView() {
               type="text"
               className="mono"
               value={settings.screenshotDir ?? ''}
-              placeholder="~/Pictures/ADB Studio"
+              placeholder="~/Pictures/Zittodb"
               onChange={(e) => void persist({ screenshotDir: e.target.value || null })}
             />
             <Button size="small" variant="ghost" onClick={() => void pickDir('screenshotDir')}>
@@ -208,7 +208,7 @@ export function SettingsView() {
               type="text"
               className="mono"
               value={settings.recordingDir ?? ''}
-              placeholder="~/Videos/ADB Studio"
+              placeholder="~/Videos/Zittodb"
               onChange={(e) => void persist({ recordingDir: e.target.value || null })}
             />
             <Button size="small" variant="ghost" onClick={() => void pickDir('recordingDir')}>
@@ -223,7 +223,7 @@ export function SettingsView() {
               type="text"
               className="mono"
               value={settings.downloadDir ?? ''}
-              placeholder="~/Downloads/ADB Studio"
+              placeholder="~/Downloads/Zittodb"
               onChange={(e) => void persist({ downloadDir: e.target.value || null })}
             />
             <Button size="small" variant="ghost" onClick={() => void pickDir('downloadDir')}>

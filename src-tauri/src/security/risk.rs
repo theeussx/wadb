@@ -4,7 +4,7 @@
 //! 1. A package is only `Safe`/`LowRisk` if it is explicitly listed in this
 //!    table. Names alone are never enough.
 //! 2. Anything not listed is `Unknown` — the UI must show
-//!    "⚠ Desconhecido — o ADB Studio não possui informações suficientes".
+//!    "⚠ Desconhecido — o Zittodb não possui informações suficientes".
 //! 3. Profiles never silently include `Unknown` or higher-risk packages.
 //! 4. Even `Safe` packages are always shown in the pre-execution preview.
 

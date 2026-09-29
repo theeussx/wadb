@@ -36,7 +36,7 @@ export function useShortcuts() {
         [SHORTCUTS.screenshot]: () => {
           setNav('devices');
           setDeviceTab('overview');
-          window.dispatchEvent(new CustomEvent('adb-studio:screenshot'));
+          window.dispatchEvent(new CustomEvent('zittodb:screenshot'));
         },
         [SHORTCUTS.files]: () => {
           setNav('devices');

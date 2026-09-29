@@ -1,6 +1,6 @@
 # Segurança
 
-Modelo de ameaças e controles do ADB Studio. A premissa central: **a UI é confiável o suficiente para exibir dados, mas nunca é confiável para executar comandos**.
+Modelo de ameaças e controles do Zittodb. A premissa central: **a UI é confiável o suficiente para exibir dados, mas nunca é confiável para executar comandos**.
 
 ## 1. Execução de processos
 
@@ -51,7 +51,7 @@ Desativar pacote **não** é destrutiva (é reversível e o app oferece Reverter
 
 - **Zero** de telemetria/analytics e nenhum update automático. Ao abrir o app, ele pode consultar somente os metadados públicos do último release no GitHub para avisar sobre uma nova versão; nenhum arquivo é baixado ou instalado.
 - Sem servidor local, sem DB, sem arquivos temporários compartilhados.
-- Persistência: `~/.config/com.wadb.adb-studio/settings.json` (atômica), `audit.jsonl` (5.000 linhas), histórico de dispositivos (metadados), log do app (2 MB). Nada de token, cookie ou segredo.
+- Persistência: `~/.config/app.zittodb.desktop/settings.json` (atômica), `audit.jsonl` (5.000 linhas), histórico de dispositivos (metadados), log do app (2 MB). Nada de token, cookie ou segredo.
 
 ## 7. Tauri / webview
 
@@ -75,7 +75,7 @@ Desativar pacote **não** é destrutiva (é reversível e o app oferece Reverter
 
 `npm run dev` inclui uma API Node no próprio Vite. Não é um serviço de produção.
 O serviço exige Host loopback, Origin correspondente, POST JSON e cabeçalho
-`X-Wadb-Client: local`; não habilita CORS. Isso bloqueia chamadas de sites externos
+`X-Zittodb-Client: local`; não habilita CORS. Isso bloqueia chamadas de sites externos
 usuais e DNS rebinding, mas não protege contra código malicioso executado na própria
 origem, extensões privilegiadas ou usuários/processos locais. Não exponha o Vite
 por túnel nem use proxy que reescreva esses cabeçalhos.

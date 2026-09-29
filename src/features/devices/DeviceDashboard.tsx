@@ -168,7 +168,7 @@ function OverviewPanel({ serial }: { serial: string }) {
             onClick={async () => {
               const dir = (await getBridge().getAppPaths());
               void dir;
-              toast({ kind: 'info', title: t('dash.screenshot.openFolder'), body: '~/Pictures/ADB Studio' });
+              toast({ kind: 'info', title: t('dash.screenshot.openFolder'), body: '~/Pictures/Zittodb' });
             }}
           >
             {t('dash.screenshot.openFolder')}

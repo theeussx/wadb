@@ -424,12 +424,12 @@ export class MockBridge implements Bridge {
   async screenshot(_serial: string | null, force: boolean): Promise<ScreenshotResult> {
     await delay(500);
     const name = `screenshot-${timestamp()}${force ? '-1' : ''}.png`;
-    return { path: `~/Pictures/ADB Studio/${name}`, sizeBytes: 842_113 };
+    return { path: `~/Pictures/Zittodb/${name}`, sizeBytes: 842_113 };
   }
 
   async pickPath(kind: 'apk' | 'file' | 'directory'): Promise<string | null> {
     await delay(50);
-    if (kind === 'directory') return '~/Downloads/ADB Studio';
+    if (kind === 'directory') return '~/Downloads/Zittodb';
     if (kind === 'apk') return '~/Downloads/app-debug.apk';
     return '~/Downloads/arquivo.zip';
   }
@@ -480,11 +480,11 @@ export class MockBridge implements Bridge {
   }
 
   async recordingDir(): Promise<string> {
-    return '~/Videos/ADB Studio';
+    return '~/Videos/Zittodb';
   }
 
   async recordingFilename(): Promise<string> {
-    return `~/Videos/ADB Studio/recording-${timestamp()}.mp4`;
+    return `~/Videos/Zittodb/recording-${timestamp()}.mp4`;
   }
 
   // ---- shell ---------------------------------------------------------------
@@ -605,7 +605,7 @@ export class MockBridge implements Bridge {
     await delay(1500);
     this.ensureDevice(serial);
     const row = PACKAGES.find((p) => p.name === pkg);
-    return `~/Downloads/ADB Studio/${(row?.path ?? pkg).split('/').pop() ?? pkg}.apk`;
+    return `~/Downloads/Zittodb/${(row?.path ?? pkg).split('/').pop() ?? pkg}.apk`;
   }
 
   // ---- files -------------------------------------------------------------------
@@ -927,15 +927,15 @@ export class MockBridge implements Bridge {
   }
 
   async getAppInfo(): Promise<AppInfo> {
-    return { name: 'ADB Studio', version: '0.1.0', tauriVersion: 'demo', platform: 'web-demo' };
+    return { name: 'Zittodb', version: '0.1.0', tauriVersion: 'demo', platform: 'web-demo' };
   }
 
   async getAppPaths(): Promise<AppPaths> {
     return {
-      configDir: '~/.config/com.wadb.adb-studio',
-      dataDir: '~/.local/share/com.wadb.adb-studio',
-      logFile: '~/.local/share/com.wadb.adb-studio/logs/adb-studio.log',
-      auditFile: '~/.config/com.wadb.adb-studio/audit.jsonl',
+      configDir: '~/.config/app.zittodb.desktop',
+      dataDir: '~/.local/share/app.zittodb.desktop',
+      logFile: '~/.local/share/app.zittodb.desktop/logs/zittodb.log',
+      auditFile: '~/.config/app.zittodb.desktop/audit.jsonl',
     };
   }
 }

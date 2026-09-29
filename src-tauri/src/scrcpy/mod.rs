@@ -1,7 +1,7 @@
 //! scrcpy integration (spec §8, §14, §17).
 //!
 //! We do NOT reimplement screen streaming: scrcpy is a mature, official tool.
-//! ADB Studio only:
+//! Zittodb only:
 //!   - locates the scrcpy binary,
 //!   - builds a validated argv (presets → flags),
 //!   - launches/stops it as a managed child process (no orphans),

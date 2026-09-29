@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn save_and_reload() {
-        let dir = std::env::temp_dir().join(format!("adb-studio-set-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("zittodb-set-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         let store = SettingsStore::at(dir.join("settings.json"));

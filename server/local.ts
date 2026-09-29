@@ -92,7 +92,7 @@ export function localBackend(): Plugin {
         res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store');
         // Local machine only: reject DNS rebinding, foreign origins and simple CSRF requests.
         const host = req.headers.host ?? '';
-        if (!/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host) || req.headers.origin !== `http://${host}` || req.method !== 'POST' || req.headers['content-type'] !== 'application/json' || req.headers['x-wadb-client'] !== 'local') {
+        if (!/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host) || req.headers.origin !== `http://${host}` || req.method !== 'POST' || req.headers['content-type'] !== 'application/json' || req.headers['x-zittodb-client'] !== 'local') {
           res.statusCode = 403; res.end(JSON.stringify({ code: 'FORBIDDEN', details: 'API ADB disponível apenas na origem local.' })); return;
         }
         try {

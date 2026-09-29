@@ -17,11 +17,11 @@ pub struct AppDirs {
 }
 
 /// Resolves the app's local directories (Linux:
-/// `~/.config/adb-studio`, `~/.local/share/adb-studio`).
+/// `~/.config/app.zittodb.desktop`, `~/.local/share/app.zittodb.desktop`).
 ///
-/// Falls back to `./.adb-studio` when HOME is unavailable (headless tests).
+/// Falls back to `./.zittodb` when HOME is unavailable (headless tests).
 pub fn app_dirs() -> AppDirs {
-    match directories::ProjectDirs::from("com", "wadb", "adb-studio") {
+    match directories::ProjectDirs::from("app", "zittodb", "desktop") {
         Some(pd) => AppDirs {
             config: pd.config_dir().to_path_buf(),
             data: pd.data_dir().to_path_buf(),
@@ -29,7 +29,7 @@ pub fn app_dirs() -> AppDirs {
         },
         None => {
             let base = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-            let base = base.join(".adb-studio");
+            let base = base.join(".zittodb");
             AppDirs {
                 config: base.clone(),
                 data: base.clone(),

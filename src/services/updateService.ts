@@ -1,8 +1,13 @@
 import { APP } from '../config/app';
 
-const RELEASES_API = 'https://api.github.com/repos/theeussx/wadb/releases/latest';
-const TAGS_API = 'https://api.github.com/repos/theeussx/wadb/tags?per_page=1';
-const REPOSITORY_URL = 'https://github.com/theeussx/wadb';
+/**
+ * Single source of truth for the repository slug. Rename the GitHub repo by
+ * changing this one value (plus `repository` in package.json).
+ */
+export const REPO_SLUG = 'theeussx/wadb';
+const RELEASES_API = `https://api.github.com/repos/${REPO_SLUG}/releases/latest`;
+const TAGS_API = `https://api.github.com/repos/${REPO_SLUG}/tags?per_page=1`;
+const REPOSITORY_URL = `https://github.com/${REPO_SLUG}`;
 
 export interface UpdateInfo {
   version: string;

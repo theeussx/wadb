@@ -1,11 +1,15 @@
 // Centralized app identity + defaults (spec §70):
 // changing branding/theme/defaults happens here, not scattered in components.
+//
+// Brand: "Zittodb" = "zitto" (zero / silêncio) + "db" (Android Debug Bridge).
+// The "db" is the Android Debug Bridge — not a database.
 
 export const APP = {
-  name: 'ADB Studio',
-  tagline: 'Android ADB · scrcpy · fastboot — local-first',
+  name: 'Zittodb',
+  tagline: 'Android Debug Bridge, direto e local.',
+  taglineEn: 'Android Debug Bridge, direct and local.',
   version: '0.1.0',
-  identifier: 'com.wadb.adb-studio',
+  identifier: 'app.zittodb.desktop',
 } as const;
 
 export const DEFAULT_SETTINGS = {
