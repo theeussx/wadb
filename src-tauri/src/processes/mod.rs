@@ -133,10 +133,10 @@ pub fn terminate_child(child: &mut Child) {
     #[cfg(unix)]
     {
         use std::os::unix::process::ExitStatusExt;
-        if let Some(pid) = child.id().map(|p| p as libc::pid_t) {
-            unsafe {
-                libc::kill(pid, libc::SIGTERM);
-            }
+        // `Child::id()` already returns the pid (`u32`) — never an `Option`.
+        let pid = child.id() as libc::pid_t;
+        unsafe {
+            libc::kill(pid, libc::SIGTERM);
         }
         let deadline = Instant::now() + Duration::from_secs(3);
         loop {
@@ -170,7 +170,7 @@ pub fn terminate_child(child: &mut Child) {
 /// A long-running streamed process (shell session, logcat, scrcpy, transfer).
 pub struct StreamHandle {
     pub child: Mutex<Option<Child>>,
-    pub stdin: Option<Mutex<std::process::Stdin>>,
+    pub stdin: Option<Mutex<std::process::ChildStdin>>,
     pub label: String,
 }
 
@@ -216,7 +216,7 @@ impl StreamHandle {
         let Ok(guard) = self.child.lock() else {
             return None;
         };
-        guard.as_ref().and_then(|c| c.id())
+        guard.as_ref().map(|c| c.id())
     }
 }
 
@@ -274,17 +274,18 @@ pub fn spawn_streamed(
     }))
 }
 
-fn pump_lines<R: Read>(mut reader: R, mut on_line: impl FnMut(String)) {
+fn pump_lines<R: Read>(reader: R, mut on_line: impl FnMut(String)) {
     use std::io::BufRead;
     let mut buf = std::io::BufReader::new(reader);
     let mut line = String::new();
     loop {
-        line.clear();
         match buf.read_line(&mut line) {
             Ok(0) => break,
             Ok(_) => {
                 // Keep the trailing newline so terminals render correctly.
-                on_line(line);
+                // `take` hands the owned line to the callback (moving `line`
+                // itself would end the loop).
+                on_line(std::mem::take(&mut line));
             }
             Err(_) => break,
         }

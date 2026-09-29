@@ -140,15 +140,12 @@ pub async fn package_extract(
     };
 
     // 1. Locate the APK on the device.
-    let apks = {
-        let h = run_readonly(
-            st.clone(),
-            Some(serial.clone()),
-            DeviceOperation::PackagePath { pkg: pkg.clone() },
-        )
-        .await?;
-        apks
-    };
+    let apks = run_readonly(
+        st.clone(),
+        Some(serial.clone()),
+        DeviceOperation::PackagePath { pkg: pkg.clone() },
+    )
+    .await?;
     let apk = apks
         .lines()
         .filter_map(|l| l.trim().strip_prefix("package:"))

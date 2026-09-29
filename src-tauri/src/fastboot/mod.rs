@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::adb::client::AdbClient;
-use crate::error::{AppError, ErrorCode};
+use crate::error::AppError;
 use crate::processes::Captured;
 use crate::security::{validate_getvar, validate_local_path, validate_partition};
 use crate::adb::operations::RebootTarget;

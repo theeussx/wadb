@@ -26,7 +26,6 @@ use crate::adb::client::{AdbClient, TIMEOUT_DEVICE, TIMEOUT_MEDIA, TIMEOUT_PROPS
 use crate::adb::operations::DeviceOperation;
 use crate::adb::ToolKind;
 use crate::applog::AppLog;
-use crate::devices;
 use crate::error::{AppError, ErrorCode};
 use crate::processes::{self, Captured};
 use crate::storage::audit::{AuditEntry, UndoRef};
@@ -47,7 +46,7 @@ pub struct AppState {
     pub transfers: Arc<crate::processes::TransferManager>,
     pub audit: Arc<crate::storage::audit::AuditLog>,
     pub history: Arc<crate::storage::history::DeviceHistory>,
-    pub coordinator: Arc<devices::Coordinator>,
+    pub coordinator: Arc<crate::devices::Coordinator>,
 }
 
 impl AppState {
@@ -155,8 +154,8 @@ pub async fn execute_op(
 
     // 2. Serial resolution (never guess with multiple devices, spec §11).
     let serial = if op.requires_serial() {
-        let devices = devices::list_devices(&adb)?;
-        Some(devices::resolve_serial(serial.as_deref(), &devices)?)
+        let devices = crate::devices::list_devices(&adb)?;
+        Some(crate::devices::resolve_serial(serial.as_deref(), &devices)?)
     } else {
         serial
     };
@@ -167,13 +166,16 @@ pub async fn execute_op(
     let described = op.describe(&adb, serial.as_deref()).unwrap_or_default();
 
     // 4. Serialize conflicting operations per device (spec §46).
-    let guard = if op.is_destructive() {
-        serial
-            .as_ref()
-            .map(|s| st.coordinator.lock_for(s).lock().unwrap_or_else(|e| e.into_inner()))
+    //    The `Arc` handles live in `locks` while `guard` is used: a guard must
+    //    not borrow a temporary `Arc` (it would be dropped while still in use).
+    let locks = if op.is_destructive() {
+        serial.as_ref().map(|s| st.coordinator.lock_for(s))
     } else {
         None
     };
+    let guard = locks
+        .as_ref()
+        .map(|l| l.lock().unwrap_or_else(|e| e.into_inner()));
 
     // 5. Execute.
     let result = (|| -> Result<OpResult, AppError> {
@@ -251,9 +253,9 @@ pub async fn run_readonly(
     op: DeviceOperation,
 ) -> Result<String, AppError> {
     let adb = st.adb()?;
-    let devices = devices::list_devices(&adb)?;
     let serial = if op.requires_serial() {
-        Some(devices::resolve_serial(serial.as_deref(), &devices)?)
+        let devices = crate::devices::list_devices(&adb)?;
+        Some(crate::devices::resolve_serial(serial.as_deref(), &devices)?)
     } else {
         serial
     };
@@ -274,6 +276,7 @@ pub async fn run_readonly(
 pub fn blocking<F, T>(f: F) -> tauri::async_runtime::JoinHandle<Result<T, AppError>>
 where
     F: FnOnce() -> Result<T, AppError> + Send + 'static,
+    T: Send + 'static,
 {
     tauri::async_runtime::spawn_blocking(f)
 }

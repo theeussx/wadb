@@ -130,7 +130,7 @@ fn sanitize(msg: &str) -> String {
         // Also redact key: value style secrets (e.g. `password: xyz`)
         if i + 1 < words.len()
             && matches!(
-                lower.trim_end_matches(':').as_str(),
+                lower.trim_end_matches(':'),
                 "password" | "passwd" | "token" | "api_key" | "apikey" | "secret"
             )
             && lower.ends_with(':')

@@ -26,13 +26,14 @@ fn screenshot_dir(st: &AppState) -> PathBuf {
         return PathBuf::from(p);
     }
     if let Some(home) = std::env::var_os("HOME") {
-        let pictures = PathBuf::from(home).join("Pictures");
+        let home = PathBuf::from(home);
+        let pictures = home.join("Pictures");
         if pictures.is_dir() {
             let sub = pictures.join("ADB Studio");
             let _ = std::fs::create_dir_all(&sub);
             return sub;
         }
-        return PathBuf::from(home).join("Downloads");
+        return home.join("Downloads");
     }
     std::env::temp_dir()
 }

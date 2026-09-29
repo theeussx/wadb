@@ -58,7 +58,11 @@ impl LogcatManager {
 
         let handle =
             spawn_streamed(adb, &args, &format!("adb -s {serial} logcat"), false, on_line)?;
-        self.sessions.lock().unwrap().insert(id.to_string(), handle);
+        // The manager keeps its own `Arc`; the caller gets the same handle.
+        self.sessions
+            .lock()
+            .unwrap()
+            .insert(id.to_string(), Arc::clone(&handle));
         Ok(handle)
     }
 
