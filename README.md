@@ -80,6 +80,8 @@ npm run tauri:dev   # desenvolvimento
 npm run tauri:build # gera AppImage + .deb em src-tauri/target/release/bundle/
 ```
 
+Ao abrir o aplicativo desktop, o ADB Studio consulta apenas os metadados públicos do último release ou tag no GitHub e mostra um aviso quando há versão mais nova. O download e a instalação continuam sendo manuais.
+
 ### Testes
 
 ```bash

@@ -15,6 +15,9 @@ const ptBR: Record<string, string> = {
   'demo.banner':
     'Modo demonstração: backend Tauri/Rust não detectado. Dispositivos simulados. Para usar com ADB real, compile com `npm run tauri:dev` ou `npm run tauri:build`.',
   'app.tagline': 'Android ADB · scrcpy · fastboot — local-first',
+  'updates.available': 'Nova versão disponível: v{version}',
+  'updates.viewRelease': 'Ver release',
+  'updates.dismiss': 'Dispensar',
 
   // ---- tools status ----
   'tools.found': '{tool} encontrado',

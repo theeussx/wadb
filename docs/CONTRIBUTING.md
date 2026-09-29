@@ -6,7 +6,7 @@
 2. **Allowlist, não free-form.** Operações novas entram como variants de `DeviceOperation` (ou `FastbootOperation`) com `validate()` + `to_args()` + teste unitário. Sem exceções.
 3. **Destrutivo = confirmação digitada.** Se a operação perde dados ou reinicia o aparelho, ela exige palavra digitada (`APAGAR`/`REMOVER`/`REINICIAR`/`FLASHAR`).
 4. **Série explícita.** `-s SERIAL` sempre; sem "operar no dispositivo conectado" ambíguo.
-5. **Sem telemetria.** Nada de analytics, crash reports, atualizações automáticas ou qualquer rede além do ADB.
+5. **Sem telemetria.** Nada de analytics, crash reports ou atualizações automáticas. A checagem opcional de versão consulta somente metadados públicos do release no GitHub.
 6. **i18n:** todo texto de UI vai para `src/i18n/pt-BR.ts` **e** `src/i18n/en-US.ts` (o teste `i18n.test.ts` falha se um idioma faltar chave).
 7. **Leveza:** nenhum novo dependency de frontend sem motivo forte; o bundle alvo é ~90 kB gzip.
 8. **Sem sobrescrever arquivos do usuário** (screenshot, gravação, pull, log salvo) — prefira sufixo ou erro `FILE_EXISTS`.
