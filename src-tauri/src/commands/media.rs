@@ -18,7 +18,7 @@ pub struct ScreenshotResult {
     pub size_bytes: u64,
 }
 
-/// Default screenshot dir: <screenshot_dir setting> | ~/Pictures/ADB Studio
+/// Default screenshot dir: <screenshot_dir setting> | ~/Pictures/Zittodb
 /// | ~/Pictures | ~/Downloads.
 fn screenshot_dir(st: &AppState) -> PathBuf {
     let s = st.settings.load();
@@ -28,7 +28,7 @@ fn screenshot_dir(st: &AppState) -> PathBuf {
     if let Some(home) = std::env::var_os("HOME") {
         let pictures = PathBuf::from(home.clone()).join("Pictures");
         if pictures.is_dir() {
-            let sub = pictures.join("ADB Studio");
+            let sub = pictures.join("Zittodb");
             let _ = std::fs::create_dir_all(&sub);
             return sub;
         }
@@ -52,14 +52,14 @@ fn default_dir_from_setting(setting: Option<&str>, name: &str) -> PathBuf {
 pub fn recording_dir(st: &AppState) -> PathBuf {
     default_dir_from_setting(
         st.settings.load().recording_dir.as_deref(),
-        "Videos/ADB Studio",
+        "Videos/Zittodb",
     )
 }
 
 pub fn download_dir(st: &AppState) -> PathBuf {
     default_dir_from_setting(
         st.settings.load().download_dir.as_deref(),
-        "Downloads/ADB Studio",
+        "Downloads/Zittodb",
     )
 }
 

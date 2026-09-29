@@ -1,4 +1,4 @@
-# ADB Studio — alvos comuns (detalhes em docs/DEVELOPMENT.md)
+# Zittodb — alvos comuns (detalhes em docs/DEVELOPMENT.md)
 
 .PHONY: help install dev build test test-rust test-frontend check check-deps perf clean
 

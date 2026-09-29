@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn records_and_clears() {
-        let dir = std::env::temp_dir().join(format!("adb-studio-hist-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("zittodb-hist-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         let h = DeviceHistory::open(&dir);
         let d = Device {

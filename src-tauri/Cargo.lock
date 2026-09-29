@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "adb-studio"
+name = "zittodb"
 version = "0.1.0"
 dependencies = [
  "chrono",

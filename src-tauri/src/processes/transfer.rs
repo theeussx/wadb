@@ -382,7 +382,7 @@ mod tests {
             .start_push(
                 "/bin/echo",
                 "S1",
-                Path::new("/tmp/adb-studio-does-not-exist.bin"),
+                Path::new("/tmp/zittodb-does-not-exist.bin"),
                 "/sdcard/x",
                 Box::new(on_event),
             )
@@ -395,7 +395,7 @@ mod tests {
     #[test]
     fn push_pull_roundtrip_with_fake_adb() {
         let dir = std::env::temp_dir().join(format!(
-            "adb-studio-test-{}-{}",
+            "zittodb-test-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -498,7 +498,7 @@ exit 0
 
     #[test]
     fn cancel_stops_the_child() {
-        let dir = std::env::temp_dir().join(format!("adb-studio-cancel-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("zittodb-cancel-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let fake = dir.join("slow-adb");
         let content = "#!/bin/sh\nsleep 30\necho never\n";

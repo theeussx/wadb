@@ -1,14 +1,14 @@
 [package]
-name = "adb-studio"
+name = "zittodb"
 version = "0.1.0"
-description = "ADB Studio — lightweight ADB/scrcpy/fastboot toolkit for Linux"
-authors = ["wadb"]
+description = "Zittodb — Android Debug Bridge, direct and local. Lightweight ADB/scrcpy/fastboot GUI for Linux."
+authors = ["theeussx"]
 edition = "2021"
 rust-version = "1.77"
 
 # The library target is what `tauri::generate_context!` / `tauri build` use.
 [lib]
-name = "adb_studio_lib"
+name = "zittodb_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

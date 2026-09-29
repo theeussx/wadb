@@ -2,7 +2,7 @@
 # check-deps.sh — verifica adb, scrcpy e fastboot (mesma ordem de descoberta do app:
 # manual → PATH → ANDROID_HOME/ANDROID_SDK_ROOT → ~/Android/Sdk → /usr/lib|opt/android-sdk).
 # Uso:  scripts/check-deps.sh
-#       ADB_STUDIO_PATH="adb=/usr/bin/adb;scrcpy=/opt/scrcpy" scripts/check-deps.sh
+#       ZITTODB_PATH="adb=/usr/bin/adb;scrcpy=/opt/scrcpy" scripts/check-deps.sh
 
 set -u
 
@@ -30,12 +30,12 @@ find_tool() {
 
 manual_for() {
   local tool="$1"
-  [[ -n "${ADB_STUDIO_PATH:-}" ]] || return 0
-  printf '%s' "$ADB_STUDIO_PATH" | tr ';' '\n' | awk -F= -v t="$tool" '$1==t{print $2}'
+  [[ -n "${ZITTODB_PATH:-}" ]] || return 0
+  printf '%s' "$ZITTODB_PATH" | tr ';' '\n' | awk -F= -v t="$tool" '$1==t{print $2}'
 }
 
 rc=0
-echo "=== ADB Studio: verificação de dependências ==="
+echo "=== Zittodb: verificação de dependências ==="
 
 for tool in adb scrcpy fastboot; do
   path="$(find_tool "$tool" "$(manual_for "$tool")" || true)"

@@ -10,6 +10,7 @@
 6. **i18n:** todo texto de UI vai para `src/i18n/pt-BR.ts` **e** `src/i18n/en-US.ts` (o teste `i18n.test.ts` falha se um idioma faltar chave).
 7. **Leveza:** nenhum novo dependency de frontend sem motivo forte; o bundle alvo é ~90 kB gzip.
 8. **Sem sobrescrever arquivos do usuário** (screenshot, gravação, pull, log salvo) — prefira sufixo ou erro `FILE_EXISTS`.
+9. **Uma marca só: Zittodb.** Nome de produto, pacote, crate, identificador, pastas, eventos e textos de UI usam a marca nova. "db" significa **D**ebug **B**ridge — o Zittodb não é um banco de dados. O mapa de onde cada nome mora está em [`DEVELOPMENT.md`](DEVELOPMENT.md#marca-e-nomes-técnicos).
 
 ## Fluxo
 

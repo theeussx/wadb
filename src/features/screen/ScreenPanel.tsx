@@ -208,7 +208,7 @@ export function ScreenPanel({ serial }: { serial: string }) {
                 type="text"
                 value={recordPath}
                 onChange={(e) => setRecordPath(e.target.value)}
-                placeholder="~/Videos/ADB Studio/recording-....mp4"
+                placeholder="~/Videos/Zittodb/recording-....mp4"
               />
               <Button
                 size="small"

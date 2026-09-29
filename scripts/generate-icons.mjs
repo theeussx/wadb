@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Gera os ícones do ADB Studio sem dependências externas.
- * Desenho: fundo escuro arredondado + símbolo ">_" em verde (terminal/ADB).
+ * Gera os ícones do Zittodb sem dependências externas.
+ * Desenho: fundo grafite arredondado + "Z" em verde Zitto com barra de cursor
+ * (homenagem ao prompt ">_" do terminal — o Zittodb é a GUI do ADB).
  *
  * Uso: node scripts/generate-icons.mjs
  */
@@ -91,25 +92,37 @@ function draw(size) {
   const s = size / 512;
   const buf = Buffer.alloc(size * size * 4);
   const corner = 100 * s;
-  const halfChevron = 30 * s;
 
-  // chevron ">" (designed on a 512 grid)
-  const A = [148 * s, 168 * s];
-  const B = [296 * s, 256 * s];
-  const C = [148 * s, 344 * s];
-  // underscore box
-  const U = { x0: 300 * s, x1: 404 * s, y0: 344 * s, y1: 392 * s };
+  // "Z" + cursor, designed on a 512 grid.
+  // The "Z" is the brand ("Zittodb"); the cursor bar below is the nod to the
+  // terminal prompt (ADB is a command-line tool — the app is its GUI).
+  const Z = [
+    [136, 150], // top-left
+    [376, 150], // top-right
+    [136, 362], // bottom-left
+    [376, 362], // bottom-right
+  ];
+  const halfStroke = 34 * s;
+  // cursor bar (the "_" of the classic ">_" prompt)
+  const U = { x0: 136 * s, x1: 376 * s, y0: 424 * s, y1: 466 * s };
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       let px = [0, 0, 0, 0];
       if (inRoundedSquare(x, y, size, corner)) px = BG;
 
-      const d1 = distToSegment(x + 0.5, y + 0.5, A[0], A[1], B[0], B[1]);
-      const d2 = distToSegment(x + 0.5, y + 0.5, B[0], B[1], C[0], C[1]);
-      if (px[3] === 255 && Math.min(d1, d2) <= halfChevron) px = FG;
+      if (px[3] === 255) {
+        const cxp = x + 0.5;
+        const cyp = y + 0.5;
+        const d = Math.min(
+          distToSegment(cxp, cyp, Z[0][0] * s, Z[0][1] * s, Z[1][0] * s, Z[1][1] * s), // top bar
+          distToSegment(cxp, cyp, Z[1][0] * s, Z[1][1] * s, Z[2][0] * s, Z[2][1] * s), // diagonal
+          distToSegment(cxp, cyp, Z[2][0] * s, Z[2][1] * s, Z[3][0] * s, Z[3][1] * s), // bottom bar
+        );
+        if (d <= halfStroke) px = FG;
 
-      if (px[3] === 255 && x >= U.x0 && x < U.x1 && y >= U.y0 && y < U.y1) px = FG;
+        if (x >= U.x0 && x < U.x1 && y >= U.y0 && y < U.y1) px = FG;
+      }
 
       const o = (y * size + x) * 4;
       buf[o] = px[0];

@@ -67,7 +67,7 @@ Exemplos de argv produzidos:
 ## scrcpy
 
 - Registro próprio de processo (id fixo `scrcpy`); um por vez (`ALREADY_RUNNING`).
-- Antes de iniciar, o backend executa `scrcpy --version` e rejeita versões anteriores a **3.2**, que não suportam corretamente as mudanças do Android 15 (`SCRCPY_INCOMPATIBLE`). O ADB Studio não reimplementa nem substitui o `scrcpy-server`; a correção é usar o release oficial atualizado.
+- Antes de iniciar, o backend executa `scrcpy --version` e rejeita versões anteriores a **3.2**, que não suportam corretamente as mudanças do Android 15 (`SCRCPY_INCOMPATIBLE`). O Zittodb não reimplementa nem substitui o `scrcpy-server`; a correção é usar o release oficial atualizado.
 - **Presets preenchem lacunas** — se o usuário personaliza, vira `custom` e o app não sobrescreve.
 - Flags: `--max-size`, `--max-fps`, `--video-bit-rate`, `--turn-screen-off`, `--always-on-top`, `--audio`, `--record` (orientação é seguida do aparelho; scrcpy não tem flag de orientação estável). O alias antigo `--bit-rate` foi removido no scrcpy 3.3.
 - Gravação **nunca sobrescreve**: sufixo `-1`..`-99` se o arquivo existir.
@@ -83,7 +83,7 @@ Exemplos de argv produzidos:
 
 ## Storage (src-tauri/src/storage/)
 
-- **Settings** — `~/.config/com.wadb.adb-studio/settings.json`; escrita **atômica** (`.tmp` + rename); corrompido → defaults.
+- **Settings** — `~/.config/app.zittodb.desktop/settings.json`; escrita **atômica** (`.tmp` + rename); corrompido → defaults.
 - **Auditoria** — `audit.jsonl`, 5.000 linhas, cada linha `{ts, device, action, command, result, undo}`.
 - **Histórico de dispositivos** — apenas metadados de último estado/visto.
 - **Log do app** — arquivo com limite de 2 MB (rotação simples).

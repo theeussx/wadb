@@ -64,8 +64,8 @@ export default function App() {
         .then((r) => toast({ kind: 'success', title: useApp.getState().t('dash.screenshot.saved'), body: r.path }))
         .catch((e) => { const error = asAppError(e); toast({ kind: 'error', title: error.code, body: error.details }); });
     };
-    window.addEventListener('adb-studio:screenshot', onShot);
-    return () => window.removeEventListener('adb-studio:screenshot', onShot);
+    window.addEventListener('zittodb:screenshot', onShot);
+    return () => window.removeEventListener('zittodb:screenshot', onShot);
   }, [toast]);
 
   return <AppShell update={update} onDismissUpdate={() => setUpdate(null)} />;

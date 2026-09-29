@@ -4,15 +4,15 @@
 //! we use (devices, getprop, shell). Security tests assert that malformed
 //! inputs are rejected BEFORE any process is spawned.
 
-use adb_studio_lib::adb::operations::DeviceOperation;
-use adb_studio_lib::adb::parse;
-use adb_studio_lib::error::ErrorCode;
-use adb_studio_lib::processes;
-use adb_studio_lib::scrcpy::ScrcpyOptions;
-use adb_studio_lib::security;
+use zittodb_lib::adb::operations::DeviceOperation;
+use zittodb_lib::adb::parse;
+use zittodb_lib::error::ErrorCode;
+use zittodb_lib::processes;
+use zittodb_lib::scrcpy::ScrcpyOptions;
+use zittodb_lib::security;
 
 fn fake_adb() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("adb-studio-it-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("zittodb-it-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let fake = dir.join("fake-adb");
     let content = r#"#!/bin/sh

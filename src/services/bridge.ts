@@ -399,10 +399,10 @@ class LocalBridge extends TauriBridge {
 
   protected async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
     if (command === 'get_settings') {
-      try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('wadb-settings') || '{}') } as T; }
+      try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('zittodb-settings') || '{}') } as T; }
       catch { return { ...DEFAULT_SETTINGS } as T; }
     }
-    if (command === 'save_settings') { localStorage.setItem('wadb-settings', JSON.stringify(args.settings)); return args.settings as T; }
+    if (command === 'save_settings') { localStorage.setItem('zittodb-settings', JSON.stringify(args.settings)); return args.settings as T; }
     if (command === 'save_log_file') {
       const url = URL.createObjectURL(new Blob([String(args.content)], { type: 'text/plain;charset=utf-8' }));
       const link = document.createElement('a'); link.href = url; link.download = String(args.path).split(/[\\/]/).pop() || 'logcat.txt';
@@ -410,7 +410,7 @@ class LocalBridge extends TauriBridge {
     }
     let response: Response;
     try {
-      response = await fetch('/api/adb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Wadb-Client': 'local' }, body: JSON.stringify({ command, args }), signal: AbortSignal.timeout(30000) });
+      response = await fetch('/api/adb', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Zittodb-Client': 'local' }, body: JSON.stringify({ command, args }), signal: AbortSignal.timeout(30000) });
     } catch { throw { code: 'LOCAL_UNAVAILABLE', details: 'Serviço local indisponível. Confira o terminal e execute npm run dev.' }; }
     const result = await response.json();
     if (!response.ok) throw result;

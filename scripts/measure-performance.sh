@@ -11,7 +11,7 @@ if [[ -z "$ADB" ]]; then
   exit 1
 fi
 
-echo "=== ADB Studio: medição pontual (spec §15) ==="
+echo "=== Zittodb: medição pontual (spec §15) ==="
 
 # Tempo de descoberta de dispositivos.
 t0=$(date +%s%N)

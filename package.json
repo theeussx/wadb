@@ -1,8 +1,22 @@
 {
-  "name": "adb-studio",
+  "name": "zittodb",
   "private": true,
   "version": "0.1.0",
-  "description": "ADB Studio — ferramenta Linux leve para gerenciamento e diagnóstico de dispositivos Android via ADB",
+  "description": "Zittodb — Android Debug Bridge, direto e local. Toolkit gráfico e leve para ADB, scrcpy e fastboot no Linux.",
+  "keywords": [
+    "adb",
+    "android",
+    "scrcpy",
+    "fastboot",
+    "linux",
+    "tauri",
+    "local-first"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theeussx/wadb.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

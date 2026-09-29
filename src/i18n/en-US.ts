@@ -12,7 +12,7 @@ const enUS: Record<string, string> = {
   'nav.autoRefresh': 'Auto refresh',
   'demo.banner':
     'Demo mode: Tauri/Rust backend not detected. Simulated devices. For real ADB use, build with `npm run tauri:dev` or `npm run tauri:build`.',
-  'app.tagline': 'Android ADB · scrcpy · fastboot — local-first',
+  'app.tagline': 'Android Debug Bridge, direct and local.',
   'updates.available': 'New version available: v{version}',
   'updates.viewRelease': 'View release',
   'updates.dismiss': 'Dismiss',
@@ -54,7 +54,7 @@ const enUS: Record<string, string> = {
   'devices.disconnect': 'Disconnect (Wi-Fi)',
   'wifi.title': 'Connect over Wi-Fi',
   'wifi.hint':
-    'Connects only to the address you provide. ADB Studio never scans the network for devices.',
+    'Connects only to the address you provide. Zittodb never scans the network for devices.',
   'wifi.ip': 'IP address',
   'wifi.port': 'Port',
   'wifi.connect': 'Connect',
@@ -98,7 +98,7 @@ const enUS: Record<string, string> = {
 
   'screen.title': 'Screen (scrcpy)',
   'screen.hint':
-    'Mirroring opens a scrcpy window (mouse, keyboard, recording). ADB Studio launches and monitors the process — it never streams video by itself.',
+    'Mirroring opens a scrcpy window (mouse, keyboard, recording). Zittodb launches and monitors the process — it never streams video by itself.',
   'screen.preset': 'Preset',
   'screen.presets.low': 'Low consumption (720p · 30fps · 2M)',
   'screen.presets.balanced': 'Balanced (1080p · 60fps · 4M)',
@@ -254,7 +254,7 @@ const enUS: Record<string, string> = {
   'debloat.undoNote': 'Reversal: re-enable the package.',
   'debloat.noUndo': '⚠ This operation has no guaranteed reversal.',
   'debloat.unknown':
-    '⚠ Unknown — ADB Studio does not have enough information to recommend removing this package. Proceed only if you know what you are doing.',
+    '⚠ Unknown — Zittodb does not have enough information to recommend removing this package. Proceed only if you know what you are doing.',
   'debloat.risk.safe': 'Safe',
   'debloat.risk.low': 'Low risk',
   'debloat.risk.caution': 'Caution',
@@ -370,7 +370,7 @@ const enUS: Record<string, string> = {
   'settings.audit': 'Keep local operation history',
   'settings.saved': 'Settings saved',
   'settings.about.privacy':
-    'ADB Studio is local-first: no account, no cloud, no telemetry (default). Data stays in {dir}.',
+    'Zittodb is local-first: no account, no cloud, no telemetry (default). Data stays in {dir}.',
   'settings.about.logs': 'App logs (diagnostics, no sensitive data):',
   'settings.about.paths': 'Local files:',
 

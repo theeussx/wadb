@@ -73,7 +73,7 @@ pub struct AppInfo {
 #[tauri::command]
 pub fn get_app_info() -> AppInfo {
     AppInfo {
-        name: "ADB Studio".into(),
+        name: "Zittodb".into(),
         version: env!("CARGO_PKG_VERSION").into(),
         // Keep a stable display string; the exact patch version ships with
         // Cargo.lock and is not worth exposing as an API dependency.
@@ -92,7 +92,7 @@ pub fn get_app_paths(state: State<'_, AppState>) -> Result<AppPaths, super::AppE
         log_file: st
             .dirs
             .log
-            .join("adb-studio.log")
+            .join("zittodb.log")
             .to_string_lossy()
             .to_string(),
         audit_file: st.audit.path().to_string_lossy().to_string(),

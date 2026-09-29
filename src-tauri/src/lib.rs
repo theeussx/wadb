@@ -1,4 +1,4 @@
-//! ADB Studio — Tauri application crate.
+//! Zittodb — Tauri application crate.
 //!
 //! Responsibility split (spec §42):
 //!   frontend: UI, state, UX, formatting
@@ -29,7 +29,7 @@ pub fn run() {
     let dirs = storage::app_dirs();
 
     let log = Arc::new(applog::AppLog::open(&dirs.log).unwrap_or_else(|e| {
-        eprintln!("adb-studio: cannot open log: {e}");
+        eprintln!("zittodb: cannot open log: {e}");
         applog::AppLog::null()
     }));
 
@@ -54,7 +54,7 @@ pub fn run() {
     };
 
     log.info(&format!(
-        "ADB Studio {} starting (theme={}, perf={})",
+        "Zittodb {} starting (theme={}, perf={})",
         env!("CARGO_PKG_VERSION"),
         initial.theme,
         initial.performance_mode
@@ -137,5 +137,5 @@ pub fn run() {
         // child. (Tauri 2 offers no `Builder::on_exit` hook, so shutdown
         // cleanup relies on these `Drop` impls, which run deterministically.)
         .run(tauri::generate_context!())
-        .expect("error while running ADB Studio");
+        .expect("error while running Zittodb");
 }

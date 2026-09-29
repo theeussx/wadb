@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ADB Studio",
+  "productName": "Zittodb",
   "version": "0.1.0",
-  "identifier": "com.wadb.adb-studio",
+  "identifier": "app.zittodb.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "ADB Studio",
+        "title": "Zittodb",
         "width": 1120,
         "height": 720,
         "minWidth": 880,
@@ -30,8 +30,8 @@
     "active": true,
     "targets": ["appimage", "deb"],
     "category": "DeveloperTool",
-    "shortDescription": "Ferramenta Linux leve para ADB, scrcpy e fastboot",
-    "longDescription": "ADB Studio é uma ferramenta gráfica, leve e local-first para trabalhar com Android Debug Bridge, scrcpy e fastboot: gerenciamento de dispositivos, shell, screenshots, espelhamento de tela, arquivos, logs e diagnóstico.",
+    "shortDescription": "Android Debug Bridge, direto e local",
+    "longDescription": "Zittodb é uma ferramenta gráfica, leve e local-first para trabalhar com Android Debug Bridge, scrcpy e fastboot no Linux: gerenciamento de dispositivos, shell, screenshots, espelhamento de tela, gestão de aplicativos com debloat, transferência de arquivos, logcat, diagnóstico, auditoria e histórico. Sem nuvem, sem contas e sem telemetria.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -14,7 +14,7 @@ const ptBR: Record<string, string> = {
   'nav.autoRefresh': 'Atualização automática',
   'demo.banner':
     'Modo demonstração: backend Tauri/Rust não detectado. Dispositivos simulados. Para usar com ADB real, compile com `npm run tauri:dev` ou `npm run tauri:build`.',
-  'app.tagline': 'Android ADB · scrcpy · fastboot — local-first',
+  'app.tagline': 'Android Debug Bridge, direto e local.',
   'updates.available': 'Nova versão disponível: v{version}',
   'updates.viewRelease': 'Ver release',
   'updates.dismiss': 'Dispensar',
@@ -58,7 +58,7 @@ const ptBR: Record<string, string> = {
   'devices.disconnect': 'Desconectar (Wi-Fi)',
   'wifi.title': 'Conectar via Wi-Fi',
   'wifi.hint':
-    'Conecta apenas ao endereço informado. O ADB Studio nunca varre a rede em busca de dispositivos.',
+    'Conecta apenas ao endereço informado. O Zittodb nunca varre a rede em busca de dispositivos.',
   'wifi.ip': 'Endereço IP',
   'wifi.port': 'Porta',
   'wifi.connect': 'Conectar',
@@ -104,7 +104,7 @@ const ptBR: Record<string, string> = {
   // ---- screen (scrcpy) ----
   'screen.title': 'Tela (scrcpy)',
   'screen.hint':
-    'O espelhamento abre em uma janela do scrcpy (mouse, teclado, gravação). O ADB Studio inicia e monitora o processo — nunca transmite vídeo por conta própria.',
+    'O espelhamento abre em uma janela do scrcpy (mouse, teclado, gravação). O Zittodb inicia e monitora o processo — nunca transmite vídeo por conta própria.',
   'screen.preset': 'Preset',
   'screen.presets.low': 'Baixo consumo (720p · 30fps · 2M)',
   'screen.presets.balanced': 'Equilibrado (1080p · 60fps · 4M)',
@@ -267,7 +267,7 @@ const ptBR: Record<string, string> = {
   'debloat.undoNote': 'Reversão: reativar o pacote.',
   'debloat.noUndo': '⚠ Esta operação não possui reversão garantida.',
   'debloat.unknown':
-    '⚠ Desconhecido — o ADB Studio não possui informações suficientes para recomendar a remoção deste pacote. Prosseguir somente se você souber o que está fazendo.',
+    '⚠ Desconhecido — o Zittodb não possui informações suficientes para recomendar a remoção deste pacote. Prosseguir somente se você souber o que está fazendo.',
   'debloat.risk.safe': 'Seguro',
   'debloat.risk.low': 'Risco baixo',
   'debloat.risk.caution': 'Atenção',
@@ -388,7 +388,7 @@ const ptBR: Record<string, string> = {
   'settings.audit': 'Manter histórico local de operações',
   'settings.saved': 'Configurações salvas',
   'settings.about.privacy':
-    'ADB Studio é local-first: sem conta, sem nuvem, sem telemetria (padrão). Os dados ficam em {dir}.',
+    'Zittodb é local-first: sem conta, sem nuvem, sem telemetria (padrão). Os dados ficam em {dir}.',
   'settings.about.logs': 'Logs da aplicação (diagnóstico, sem dados sensíveis):',
   'settings.about.paths': 'Arquivos locais:',
 
