@@ -26,7 +26,7 @@ fn screenshot_dir(st: &AppState) -> PathBuf {
         return PathBuf::from(p);
     }
     if let Some(home) = std::env::var_os("HOME") {
-        let pictures = PathBuf::from(home).join("Pictures");
+        let pictures = PathBuf::from(home.clone()).join("Pictures");
         if pictures.is_dir() {
             let sub = pictures.join("ADB Studio");
             let _ = std::fs::create_dir_all(&sub);
@@ -50,11 +50,17 @@ fn default_dir_from_setting(setting: Option<&str>, name: &str) -> PathBuf {
 }
 
 pub fn recording_dir(st: &AppState) -> PathBuf {
-    default_dir_from_setting(st.settings.load().recording_dir.as_deref(), "Videos/ADB Studio")
+    default_dir_from_setting(
+        st.settings.load().recording_dir.as_deref(),
+        "Videos/ADB Studio",
+    )
 }
 
 pub fn download_dir(st: &AppState) -> PathBuf {
-    default_dir_from_setting(st.settings.load().download_dir.as_deref(), "Downloads/ADB Studio")
+    default_dir_from_setting(
+        st.settings.load().download_dir.as_deref(),
+        "Downloads/ADB Studio",
+    )
 }
 
 /// Takes a screenshot.

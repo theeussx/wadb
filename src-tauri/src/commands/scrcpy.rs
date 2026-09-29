@@ -36,8 +36,8 @@ pub fn scrcpy_start(
     }
 
     let mut opts = options;
-    if let Some(preset) = &opts.preset {
-        opts.apply_preset(preset);
+    if let Some(preset) = opts.preset.clone() {
+        opts.apply_preset(&preset);
     }
     opts.validate()?;
     let args = opts.to_args(&serial)?;

@@ -35,20 +35,15 @@ impl Level {
 
 pub struct AppLog {
     file: Mutex<Option<File>>,
-    path: std::path::PathBuf,
 }
 
 impl AppLog {
     pub fn open(log_dir: &Path) -> std::io::Result<AppLog> {
         fs::create_dir_all(log_dir)?;
         let path = log_dir.join("adb-studio.log");
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&path)?;
+        let file = OpenOptions::new().create(true).append(true).open(&path)?;
         Ok(AppLog {
             file: Mutex::new(Some(file)),
-            path,
         })
     }
 
@@ -56,7 +51,6 @@ impl AppLog {
     pub fn null() -> AppLog {
         AppLog {
             file: Mutex::new(None),
-            path: std::path::PathBuf::new(),
         }
     }
 
@@ -119,18 +113,20 @@ fn sanitize(msg: &str) -> String {
     while i < words.len() {
         let w = words[i];
         let lower = w.to_lowercase();
-        if matches!(
-            lower.as_str(),
-            "password=" | "passwd=" | "token=" | "api_key=" | "apikey=" | "secret="
-        ) {
-            out.push_str(&format!("{w} [redacted]"));
-            i += 1;
-            continue;
+        if let Some((key, _value)) = lower.split_once('=') {
+            if matches!(
+                key,
+                "password" | "passwd" | "token" | "api_key" | "apikey" | "secret"
+            ) {
+                out.push_str(&format!("{key}= [redacted]"));
+                i += 1;
+                continue;
+            }
         }
         // Also redact key: value style secrets (e.g. `password: xyz`)
         if i + 1 < words.len()
             && matches!(
-                lower.trim_end_matches(':').as_str(),
+                lower.trim_end_matches(':'),
                 "password" | "passwd" | "token" | "api_key" | "apikey" | "secret"
             )
             && lower.ends_with(':')

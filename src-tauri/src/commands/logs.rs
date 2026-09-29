@@ -9,8 +9,8 @@ use tauri::AppHandle;
 use tauri::Emitter;
 use tauri::State;
 
-use crate::processes::validate_logcat_spec;
 use crate::error::AppError;
+use crate::processes::validate_logcat_spec;
 
 use super::AppState;
 
@@ -49,7 +49,8 @@ pub fn logcat_start(
     let spec_ref = spec.as_deref();
     st.logcat_mgr
         .open(&id, &adb, &serial, spec_ref, Arc::new(on_line))?;
-    st.log.info(&format!("logcat session {id} started for {serial}"));
+    st.log
+        .info(&format!("logcat session {id} started for {serial}"));
     Ok(id)
 }
 

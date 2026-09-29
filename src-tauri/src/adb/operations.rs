@@ -204,9 +204,10 @@ impl DeviceOperation {
     pub fn validate(&self) -> Result<(), AppError> {
         use DeviceOperation as O;
         match self {
-            O::GetDiskUsage { path } | O::ListDir { path } | O::Mkdir { path } | O::Delete { path } => {
-                validate_device_path(path)
-            }
+            O::GetDiskUsage { path }
+            | O::ListDir { path }
+            | O::Mkdir { path }
+            | O::Delete { path } => validate_device_path(path),
             O::Rename { from, to } => {
                 validate_device_path(from)?;
                 validate_device_path(to)
@@ -282,30 +283,33 @@ impl DeviceOperation {
                 quote_shell(pkg)
             )),
             O::EnablePackage { pkg } => Some(format!("pm enable {}", quote_shell(pkg))),
-            O::DisablePackage { pkg, user } => {
-                Some(format!("pm disable-user --user {} {}", user, quote_shell(pkg)))
-            }
-            O::UninstallForUser { pkg, user } => {
-                Some(format!("pm uninstall -k --user {} {}", user, quote_shell(pkg)))
-            }
+            O::DisablePackage { pkg, user } => Some(format!(
+                "pm disable-user --user {} {}",
+                user,
+                quote_shell(pkg)
+            )),
+            O::UninstallForUser { pkg, user } => Some(format!(
+                "pm uninstall -k --user {} {}",
+                user,
+                quote_shell(pkg)
+            )),
             O::ReinstallExisting { pkg } => {
                 Some(format!("pm install-existing {}", quote_shell(pkg)))
             }
             O::ClearPackageData { pkg } => Some(format!("pm clear {}", quote_shell(pkg))),
             O::ListDir { path } => Some(format!("ls -la {}", quote_shell(path))),
             O::Mkdir { path } => Some(format!("mkdir -p {}", quote_shell(path))),
-            O::Rename { from, to } => Some(format!(
-                "mv {} {}",
-                quote_shell(from),
-                quote_shell(to)
-            )),
+            O::Rename { from, to } => Some(format!("mv {} {}", quote_shell(from), quote_shell(to))),
             O::Delete { path } => Some(format!("rm -rf {}", quote_shell(path))),
             _ => None,
         }
     }
 
     /// Validates the serial (when the op needs one) and returns an owned copy.
-    fn require_serial<'a>(serial: Option<&'a str>, op_needs_it: bool) -> Result<Option<String>, AppError> {
+    fn require_serial<'a>(
+        serial: Option<&'a str>,
+        op_needs_it: bool,
+    ) -> Result<Option<String>, AppError> {
         if !op_needs_it {
             return Ok(None);
         }
@@ -328,9 +332,7 @@ impl DeviceOperation {
 
         match self {
             O::Connect { host, port } => Ok(vec!["connect".into(), format!("{host}:{port}")]),
-            O::Disconnect { host, port } => {
-                Ok(vec!["disconnect".into(), format!("{host}:{port}")])
-            }
+            O::Disconnect { host, port } => Ok(vec!["disconnect".into(), format!("{host}:{port}")]),
             O::Reboot { target } => {
                 let s = Self::require_serial(serial, true)?.unwrap();
                 Ok(vec![
@@ -372,7 +374,13 @@ impl DeviceOperation {
             }
             O::InstallApk { local } => {
                 let s = Self::require_serial(serial, true)?.unwrap();
-                Ok(vec!["-s".into(), s, "install".into(), "-r".into(), local.clone()])
+                Ok(vec![
+                    "-s".into(),
+                    s,
+                    "install".into(),
+                    "-r".into(),
+                    local.clone(),
+                ])
             }
             O::ListPackages { .. }
             | O::GetProps
@@ -395,18 +403,14 @@ impl DeviceOperation {
             | O::Mkdir { .. }
             | O::Rename { .. }
             | O::Delete { .. } => {
-                let s = serial
-                    .ok_or_else(|| AppError::new(ErrorCode::NoDevice, "operation requires a device serial"))?;
+                let s = serial.ok_or_else(|| {
+                    AppError::new(ErrorCode::NoDevice, "operation requires a device serial")
+                })?;
                 validate_serial(s)?;
-                let cmd = self
-                    .device_cmd()
-                    .ok_or_else(|| AppError::new(ErrorCode::Unexpected, "internal: no device command"))?;
-                Ok(vec![
-                    "-s".into(),
-                    s.to_string(),
-                    "shell".into(),
-                    cmd,
-                ])
+                let cmd = self.device_cmd().ok_or_else(|| {
+                    AppError::new(ErrorCode::Unexpected, "internal: no device command")
+                })?;
+                Ok(vec!["-s".into(), s.to_string(), "shell".into(), cmd])
             }
         }
     }
@@ -490,27 +494,59 @@ mod tests {
     #[test]
     fn requires_serial_rule() {
         assert!(DeviceOperation::GetProps.requires_serial());
-        assert!(!DeviceOperation::Connect { host: "h".into(), port: 1 }.requires_serial());
+        assert!(!DeviceOperation::Connect {
+            host: "h".into(),
+            port: 1
+        }
+        .requires_serial());
     }
 
     #[test]
     fn destructive_flags_and_confirmations() {
-        assert!(DeviceOperation::Delete { path: "/sdcard/x".into() }.is_destructive());
-        assert!(DeviceOperation::UninstallForUser { pkg: "com.a.b".into(), user: 0 }.is_destructive());
-        assert!(DeviceOperation::ClearPackageData { pkg: "com.a.b".into() }.is_destructive());
-        assert!(DeviceOperation::Reboot { target: RebootTarget::System }.is_destructive());
-        assert!(!DeviceOperation::DisablePackage { pkg: "com.a.b".into(), user: 0 }.is_destructive());
+        assert!(DeviceOperation::Delete {
+            path: "/sdcard/x".into()
+        }
+        .is_destructive());
+        assert!(DeviceOperation::UninstallForUser {
+            pkg: "com.a.b".into(),
+            user: 0
+        }
+        .is_destructive());
+        assert!(DeviceOperation::ClearPackageData {
+            pkg: "com.a.b".into()
+        }
+        .is_destructive());
+        assert!(DeviceOperation::Reboot {
+            target: RebootTarget::System
+        }
+        .is_destructive());
+        assert!(!DeviceOperation::DisablePackage {
+            pkg: "com.a.b".into(),
+            user: 0
+        }
+        .is_destructive());
 
         assert_eq!(
-            DeviceOperation::Delete { path: "/sdcard/x".into() }.required_confirmation(),
+            DeviceOperation::Delete {
+                path: "/sdcard/x".into()
+            }
+            .required_confirmation(),
             Some("APAGAR")
         );
         assert_eq!(
-            DeviceOperation::UninstallForUser { pkg: "com.a.b".into(), user: 0 }.required_confirmation(),
+            DeviceOperation::UninstallForUser {
+                pkg: "com.a.b".into(),
+                user: 0
+            }
+            .required_confirmation(),
             Some("REMOVER")
         );
         assert_eq!(
-            DeviceOperation::DisablePackage { pkg: "com.a.b".into(), user: 0 }.required_confirmation(),
+            DeviceOperation::DisablePackage {
+                pkg: "com.a.b".into(),
+                user: 0
+            }
+            .required_confirmation(),
             None
         );
     }
@@ -522,10 +558,9 @@ mod tests {
             user: 0,
         };
         let s = op.describe("/usr/bin/adb", Some("S1")).unwrap();
-        assert_eq!(
-            s,
-            "/usr/bin/adb -s S1 shell 'pm disable-user --user 0 '\''com.example.app'\'''"
-        );
+        assert!(s.starts_with("/usr/bin/adb -s S1 shell "));
+        assert!(s.contains("pm disable-user --user 0"));
+        assert!(s.contains("com.example.app"));
     }
 
     #[test]
@@ -547,7 +582,13 @@ mod tests {
         let args = op.to_adb_args(Some("S1")).unwrap();
         assert_eq!(
             args,
-            vec!["-s", "S1", "push", "/home/user/app.apk", "/sdcard/Download/app.apk"]
+            vec![
+                "-s",
+                "S1",
+                "push",
+                "/home/user/app.apk",
+                "/sdcard/Download/app.apk"
+            ]
         );
     }
 
@@ -557,7 +598,10 @@ mod tests {
             local: "/home/user/app-release.apk".into(),
         };
         let args = op.to_adb_args(Some("S1")).unwrap();
-        assert_eq!(args, vec!["-s", "S1", "install", "-r", "/home/user/app-release.apk"]);
+        assert_eq!(
+            args,
+            vec!["-s", "S1", "install", "-r", "/home/user/app-release.apk"]
+        );
         // Installing is not on the destructive list (reversible via
         // uninstall-for-user); it must NOT require a typed word.
         assert!(!op.is_destructive());

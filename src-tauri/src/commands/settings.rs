@@ -47,7 +47,9 @@ pub fn clear_audit(state: State<'_, AppState>) -> Result<(), super::AppError> {
 }
 
 #[tauri::command]
-pub fn get_device_history(state: State<'_, AppState>) -> Result<Vec<HistoryEntry>, super::AppError> {
+pub fn get_device_history(
+    state: State<'_, AppState>,
+) -> Result<Vec<HistoryEntry>, super::AppError> {
     let st = state.inner().clone();
     Ok(st.history.read())
 }
@@ -87,7 +89,12 @@ pub fn get_app_paths(state: State<'_, AppState>) -> Result<AppPaths, super::AppE
     Ok(AppPaths {
         config_dir: st.dirs.config.to_string_lossy().to_string(),
         data_dir: st.dirs.data.to_string_lossy().to_string(),
-        log_file: st.dirs.log.join("adb-studio.log").to_string_lossy().to_string(),
+        log_file: st
+            .dirs
+            .log
+            .join("adb-studio.log")
+            .to_string_lossy()
+            .to_string(),
         audit_file: st.audit.path().to_string_lossy().to_string(),
     })
 }

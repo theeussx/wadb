@@ -28,12 +28,10 @@ use storage::settings::SettingsStore;
 pub fn run() {
     let dirs = storage::app_dirs();
 
-    let log = Arc::new(
-        applog::AppLog::open(&dirs.log).unwrap_or_else(|e| {
-            eprintln!("adb-studio: cannot open log: {e}");
-            applog::AppLog::null()
-        }),
-    );
+    let log = Arc::new(applog::AppLog::open(&dirs.log).unwrap_or_else(|e| {
+        eprintln!("adb-studio: cannot open log: {e}");
+        applog::AppLog::null()
+    }));
 
     let settings = Arc::new(SettingsStore::open(&dirs.config));
     let initial = settings.load();

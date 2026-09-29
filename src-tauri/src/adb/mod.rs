@@ -97,10 +97,7 @@ impl ToolManager {
             let manual = manuals[i];
             let (path, source) = find_tool(kind, manual, &dirs);
             let path_str = path.map(|p| p.to_string_lossy().to_string());
-            let version = path_str
-                .as_ref()
-                .map(|p| fetch_version(p, kind))
-                .flatten();
+            let version = path_str.as_ref().map(|p| fetch_version(p, kind)).flatten();
             statuses.push(ToolStatus {
                 name: kind.as_str().to_string(),
                 found: path_str.is_some(),
@@ -283,7 +280,11 @@ mod tests {
         let (p, _) = find_tool(&ToolKind::Adb, Some("/nonexistent/nope"), &[]);
         // /bin/sh is not named adb, PATH won't have adb in this sandbox:
         // either way, the bad manual path must not be used.
-        assert!(p.as_ref().map(|x| x.file_name().unwrap().to_string_lossy().to_string()) != Some("nope".to_string()));
+        assert!(
+            p.as_ref()
+                .map(|x| x.file_name().unwrap().to_string_lossy().to_string())
+                != Some("nope".to_string())
+        );
     }
 
     #[test]
@@ -298,7 +299,9 @@ mod tests {
     fn set_manual_validates_executable() {
         let m = ToolManager::new();
         assert!(m.set_manual(ToolKind::Adb, Some("/bin/sh")).is_ok());
-        assert!(m.set_manual(ToolKind::Adb, Some("/nonexistent/xyz")).is_err());
+        assert!(m
+            .set_manual(ToolKind::Adb, Some("/nonexistent/xyz"))
+            .is_err());
         assert!(m.set_manual(ToolKind::Adb, None).is_ok());
     }
 }

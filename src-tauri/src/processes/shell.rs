@@ -53,37 +53,41 @@ impl ShellManager {
     ) -> Result<Arc<StreamHandle>, AppError> {
         validate_serial(serial)?;
         if self.sessions.lock().unwrap().contains_key(id) {
-            return Err(AppError::new(ErrorCode::AlreadyRunning, format!("session {id} exists")));
+            return Err(AppError::new(
+                ErrorCode::AlreadyRunning,
+                format!("session {id} exists"),
+            ));
         }
 
-        let args = vec![
-            "-s".to_string(),
-            serial.to_string(),
-            "shell".to_string(),
-        ];
-        let handle =
-            spawn_streamed(adb, &args, &format!("adb -s {serial} shell"), true, on_line)?;
+        let args = vec!["-s".to_string(), serial.to_string(), "shell".to_string()];
+        let handle = spawn_streamed(adb, &args, &format!("adb -s {serial} shell"), true, on_line)?;
 
-        self.sessions.lock().unwrap().insert(id.to_string(), handle.clone());
-        self.serials.lock().unwrap().insert(id.to_string(), serial.to_string());
+        self.sessions
+            .lock()
+            .unwrap()
+            .insert(id.to_string(), handle.clone());
+        self.serials
+            .lock()
+            .unwrap()
+            .insert(id.to_string(), serial.to_string());
         Ok(handle)
     }
 
     pub fn write(&self, id: &str, data: &str) -> Result<(), AppError> {
         let guard = self.sessions.lock().unwrap();
         let Some(handle) = guard.get(id) else {
-            return Err(AppError::new(ErrorCode::FileNotFound, format!("no shell session '{id}'")));
+            return Err(AppError::new(
+                ErrorCode::FileNotFound,
+                format!("no shell session '{id}'"),
+            ));
         };
         handle.write(data)
     }
 
     pub fn close(&self, id: &str) -> Result<(), AppError> {
-        let handle = self
-            .sessions
-            .lock()
-            .unwrap()
-            .remove(id)
-            .ok_or_else(|| AppError::new(ErrorCode::FileNotFound, format!("no shell session '{id}'")))?;
+        let handle = self.sessions.lock().unwrap().remove(id).ok_or_else(|| {
+            AppError::new(ErrorCode::FileNotFound, format!("no shell session '{id}'"))
+        })?;
         self.serials.lock().unwrap().remove(id);
         handle.stop();
         Ok(())
@@ -146,7 +150,11 @@ mod tests {
             let err = m
                 .open("shX", "/bin/echo", bad, Arc::new(on_line))
                 .expect_err("must reject");
-            assert_eq!(err.code, ErrorCode::InvalidSerial, "serial {bad:?} accepted?");
+            assert_eq!(
+                err.code,
+                ErrorCode::InvalidSerial,
+                "serial {bad:?} accepted?"
+            );
         }
     }
 
@@ -156,7 +164,9 @@ mod tests {
         let on_line = |_l: String| {};
         // /bin/cat with stdin as a stand-in for `adb shell` (same shape:
         // writes go to stdin, output comes on stdout).
-        let h = m.open("sh1", "/bin/cat", "192.168.1.50:5555", Arc::new(on_line)).unwrap();
+        let h = m
+            .open("sh1", "/bin/cat", "192.168.1.50:5555", Arc::new(on_line))
+            .unwrap();
         m.write("sh1", "hi\n").unwrap();
         assert_eq!(m.list().len(), 1);
         m.close("sh1").unwrap();

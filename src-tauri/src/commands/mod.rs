@@ -26,7 +26,7 @@ use crate::adb::client::{AdbClient, TIMEOUT_DEVICE, TIMEOUT_MEDIA, TIMEOUT_PROPS
 use crate::adb::operations::DeviceOperation;
 use crate::adb::ToolKind;
 use crate::applog::AppLog;
-use crate::devices;
+use crate::devices as device_helpers;
 use crate::error::{AppError, ErrorCode};
 use crate::processes::{self, Captured};
 use crate::storage::audit::{AuditEntry, UndoRef};
@@ -47,14 +47,13 @@ pub struct AppState {
     pub transfers: Arc<crate::processes::TransferManager>,
     pub audit: Arc<crate::storage::audit::AuditLog>,
     pub history: Arc<crate::storage::history::DeviceHistory>,
-    pub coordinator: Arc<devices::Coordinator>,
+    pub coordinator: Arc<device_helpers::Coordinator>,
 }
 
 impl AppState {
     pub fn adb(&self) -> Result<String, AppError> {
         let s = self.settings.load();
-        self.tools
-            .require(ToolKind::Adb, s.adb_path.as_deref())
+        self.tools.require(ToolKind::Adb, s.adb_path.as_deref())
     }
 }
 
@@ -103,14 +102,28 @@ pub fn infer_code(out: &Captured) -> ErrorCode {
 fn timeout_for(op: &DeviceOperation) -> Duration {
     use DeviceOperation as O;
     match op {
-        O::GetProps | O::GetKernel | O::GetMeminfo | O::GetBattery | O::GetNetwork
-        | O::GetResolv | O::GetMac { .. } | O::GetDiskUsage { .. }
-        | O::ListDir { .. } | O::Mkdir { .. } | O::Rename { .. } | O::Delete { .. }
-        | O::ListPackages { .. } | O::PackagePath { .. } | O::EnablePackage { .. }
-        | O::DisablePackage { .. } | O::ReinstallExisting { .. } | O::ClearPackageData { .. }
-        | O::OpenPackage { .. } | O::Connect { .. } | O::Disconnect { .. } | O::Reboot { .. } => {
-            TIMEOUT_DEVICE
-        }
+        O::GetProps
+        | O::GetKernel
+        | O::GetMeminfo
+        | O::GetBattery
+        | O::GetNetwork
+        | O::GetResolv
+        | O::GetMac { .. }
+        | O::GetDiskUsage { .. }
+        | O::ListDir { .. }
+        | O::Mkdir { .. }
+        | O::Rename { .. }
+        | O::Delete { .. }
+        | O::ListPackages { .. }
+        | O::PackagePath { .. }
+        | O::EnablePackage { .. }
+        | O::DisablePackage { .. }
+        | O::ReinstallExisting { .. }
+        | O::ClearPackageData { .. }
+        | O::OpenPackage { .. }
+        | O::Connect { .. }
+        | O::Disconnect { .. }
+        | O::Reboot { .. } => TIMEOUT_DEVICE,
         O::PackageDump { .. } => TIMEOUT_PROPS,
         O::UninstallForUser { .. } => TIMEOUT_PROPS,
         O::InstallApk { .. } => Duration::from_secs(600), // large APKs on slow Wi-Fi
@@ -155,8 +168,8 @@ pub async fn execute_op(
 
     // 2. Serial resolution (never guess with multiple devices, spec §11).
     let serial = if op.requires_serial() {
-        let devices = devices::list_devices(&adb)?;
-        Some(devices::resolve_serial(serial.as_deref(), &devices)?)
+        let devices = device_helpers::list_devices(&adb)?;
+        Some(device_helpers::resolve_serial(serial.as_deref(), &devices)?)
     } else {
         serial
     };
@@ -167,13 +180,14 @@ pub async fn execute_op(
     let described = op.describe(&adb, serial.as_deref()).unwrap_or_default();
 
     // 4. Serialize conflicting operations per device (spec §46).
-    let guard = if op.is_destructive() {
-        serial
-            .as_ref()
-            .map(|s| st.coordinator.lock_for(s).lock().unwrap_or_else(|e| e.into_inner()))
+    let device_lock = if op.is_destructive() {
+        serial.as_ref().map(|s| st.coordinator.lock_for(s))
     } else {
         None
     };
+    let guard = device_lock
+        .as_ref()
+        .map(|lock| lock.lock().unwrap_or_else(|e| e.into_inner()));
 
     // 5. Execute.
     let result = (|| -> Result<OpResult, AppError> {
@@ -201,10 +215,7 @@ pub async fn execute_op(
 
     // 6. Audit (no sensitive data: command comes from the allowlist builder).
     let (result_str, undo) = match &result {
-        Ok(r) if r.ok => (
-            "ok".to_string(),
-            undo_ref_for(&op),
-        ),
+        Ok(r) if r.ok => ("ok".to_string(), undo_ref_for(&op)),
         Ok(r) => (
             format!("error:{}", r.code.clone().unwrap_or_default()),
             None,
@@ -251,9 +262,9 @@ pub async fn run_readonly(
     op: DeviceOperation,
 ) -> Result<String, AppError> {
     let adb = st.adb()?;
-    let devices = devices::list_devices(&adb)?;
+    let devices = device_helpers::list_devices(&adb)?;
     let serial = if op.requires_serial() {
-        Some(devices::resolve_serial(serial.as_deref(), &devices)?)
+        Some(device_helpers::resolve_serial(serial.as_deref(), &devices)?)
     } else {
         serial
     };
@@ -274,12 +285,18 @@ pub async fn run_readonly(
 pub fn blocking<F, T>(f: F) -> tauri::async_runtime::JoinHandle<Result<T, AppError>>
 where
     F: FnOnce() -> Result<T, AppError> + Send + 'static,
+    T: Send + 'static,
 {
     tauri::async_runtime::spawn_blocking(f)
 }
 
 /// Joins a blocking handle, mapping JoinError to AppError.
-pub async fn join<T>(h: tauri::async_runtime::JoinHandle<Result<T, AppError>>) -> Result<T, AppError> {
+pub async fn join<T>(
+    h: tauri::async_runtime::JoinHandle<Result<T, AppError>>,
+) -> Result<T, AppError>
+where
+    T: Send + 'static,
+{
     h.await
         .map_err(|e| AppError::new(ErrorCode::Unexpected, format!("task: {e}")))?
 }

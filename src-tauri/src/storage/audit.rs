@@ -30,7 +30,7 @@ pub struct AuditEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoRef {
-    pub action: String,   // "enable_package" | "reinstall_existing"
+    pub action: String, // "enable_package" | "reinstall_existing"
     pub package: String,
 }
 
@@ -82,10 +82,7 @@ impl AuditLog {
             return;
         }
         let keep = &lines[lines.len() - MAX_LINES..];
-        let joined: String = keep
-            .iter()
-            .map(|l| format!("{l}\n"))
-            .collect();
+        let joined: String = keep.iter().map(|l| format!("{l}\n")).collect();
         fs::write(&self.path, joined).ok();
     }
 

@@ -170,5 +170,11 @@ pub async fn reboot_device(
             ))
         }
     };
-    execute_op(st, serial, DeviceOperation::Reboot { target }, Some(confirmation)).await
+    execute_op(
+        st,
+        serial,
+        DeviceOperation::Reboot { target },
+        Some(confirmation),
+    )
+    .await
 }

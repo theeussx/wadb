@@ -146,13 +146,19 @@ impl TransferManager {
         match kind {
             "pull" => {
                 let remote_arg = adb_args.first().ok_or_else(|| {
-                    AppError::new(ErrorCode::InvalidArgument, "internal: pull needs a remote path")
+                    AppError::new(
+                        ErrorCode::InvalidArgument,
+                        "internal: pull needs a remote path",
+                    )
                 })?;
                 validate_device_path(remote_arg)?;
             }
             "push" => {
                 let remote_arg = adb_args.get(1).ok_or_else(|| {
-                    AppError::new(ErrorCode::InvalidArgument, "internal: push needs a remote path")
+                    AppError::new(
+                        ErrorCode::InvalidArgument,
+                        "internal: push needs a remote path",
+                    )
                 })?;
                 validate_device_path(remote_arg)?;
             }
@@ -205,7 +211,10 @@ impl TransferManager {
             last_line,
             handle,
         });
-        self.jobs.lock().unwrap().insert(id.clone(), Arc::clone(&job));
+        self.jobs
+            .lock()
+            .unwrap()
+            .insert(id.clone(), Arc::clone(&job));
 
         let watcher = Arc::clone(&job);
         let watcher_id = id.clone();
@@ -341,9 +350,7 @@ pub fn local_file_size(local: &Path) -> Option<u64> {
 }
 
 pub fn local_current_bytes(local: &Path) -> u64 {
-    std::fs::metadata(local)
-        .map(|m| m.len())
-        .unwrap_or(0)
+    std::fs::metadata(local).map(|m| m.len()).unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -355,7 +362,14 @@ mod tests {
         let m = TransferManager::new();
         let on_event = |_e: TransferEvent| {};
         let err = m
-            .start_pull("/bin/echo", "S1", "no-slash", Path::new("/tmp/x"), None, Box::new(on_event))
+            .start_pull(
+                "/bin/echo",
+                "S1",
+                "no-slash",
+                Path::new("/tmp/x"),
+                None,
+                Box::new(on_event),
+            )
             .expect_err("device path must start with /");
         assert_eq!(err.code, ErrorCode::InvalidPath);
     }
@@ -466,15 +480,17 @@ exit 0
                 }),
             )
             .expect("pull should start");
-        let event2 = rx2
-            .recv_timeout(Duration::from_secs(10))
-            .expect("should receive a final event");
+        let event2 = loop {
+            let event = rx2
+                .recv_timeout(Duration::from_secs(10))
+                .expect("should receive a final event");
+            if event.status != "running" {
+                break event;
+            }
+        };
         assert_eq!(event2.id, id2);
         assert_eq!(event2.status, "done", "got: {event2:?}");
-        assert_eq!(
-            std::fs::read(&local_out).unwrap().len(),
-            1024
-        );
+        assert_eq!(std::fs::read(&local_out).unwrap().len(), 1024);
         m.remove_finished(&id2);
 
         std::fs::remove_dir_all(&dir).ok();
@@ -482,10 +498,7 @@ exit 0
 
     #[test]
     fn cancel_stops_the_child() {
-        let dir = std::env::temp_dir().join(format!(
-            "adb-studio-cancel-{}",
-            std::process::id()
-        ));
+        let dir = std::env::temp_dir().join(format!("adb-studio-cancel-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let fake = dir.join("slow-adb");
         let content = "#!/bin/sh\nsleep 30\necho never\n";

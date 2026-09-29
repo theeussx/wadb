@@ -8,14 +8,11 @@ use adb_studio_lib::adb::operations::DeviceOperation;
 use adb_studio_lib::adb::parse;
 use adb_studio_lib::error::ErrorCode;
 use adb_studio_lib::processes;
-use adb_studio_lib::security;
 use adb_studio_lib::scrcpy::ScrcpyOptions;
+use adb_studio_lib::security;
 
 fn fake_adb() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "adb-studio-it-{}",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("adb-studio-it-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let fake = dir.join("fake-adb");
     let content = r#"#!/bin/sh
@@ -118,7 +115,12 @@ fn device_info_flow_with_fake_adb() {
     let fake = fake_adb();
     let out = processes::run_captured(
         fake.to_str().unwrap(),
-        &["-s".into(), "FAKE0001".into(), "shell".into(), "getprop".into()],
+        &[
+            "-s".into(),
+            "FAKE0001".into(),
+            "shell".into(),
+            "getprop".into(),
+        ],
         std::time::Duration::from_secs(5),
     )
     .unwrap();
@@ -186,7 +188,10 @@ fn security_confirmation_gate_requires_exact_word() {
     assert_eq!(op.required_confirmation(), Some("APAGAR"));
     // A wrong word must not be accepted (checked in commands::execute_op).
     let wrong = Some("apagar".to_string());
-    assert_ne!(wrong.as_deref().unwrap(), op.required_confirmation().unwrap());
+    assert_ne!(
+        wrong.as_deref().unwrap(),
+        op.required_confirmation().unwrap()
+    );
 }
 
 #[test]

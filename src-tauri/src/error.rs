@@ -56,7 +56,11 @@ impl AppError {
 
     /// Builds an error from a failed process, inferring the most likely
     /// cause from adb's stderr so the UI can show an actionable message.
-    pub fn from_process(code: ErrorCode, executable: &str, output: &crate::processes::Captured) -> Self {
+    pub fn from_process(
+        code: ErrorCode,
+        executable: &str,
+        output: &crate::processes::Captured,
+    ) -> Self {
         let stderr = output.stderr.to_lowercase();
         let inferred = if stderr.contains("unauthorized")
             || stderr.contains("check the confirmation dialog on your device")

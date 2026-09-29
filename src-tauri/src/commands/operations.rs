@@ -68,7 +68,13 @@ pub async fn execute_batch(
     let mut results = Vec::with_capacity(packages.len());
     for (i, pkg) in packages.iter().enumerate() {
         let item_op = with_package(&op, pkg);
-        let res = execute_op(st.clone(), Some(serial.clone()), item_op, confirmation.clone()).await;
+        let res = execute_op(
+            st.clone(),
+            Some(serial.clone()),
+            item_op,
+            confirmation.clone(),
+        )
+        .await;
         let (ok, code, message) = match res {
             Ok(r) => (r.ok, r.code.clone(), r.stdout),
             Err(e) => (false, Some(e.code.as_str().to_string()), e.details),

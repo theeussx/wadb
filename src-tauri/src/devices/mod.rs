@@ -52,10 +52,7 @@ pub struct Device {
 
 pub fn list_devices(adb: &str) -> Result<Vec<Device>, AppError> {
     let client = AdbClient::new(adb);
-    let out = client.run_ok(
-        vec!["devices".into(), "-l".into()],
-        Duration::from_secs(10),
-    )?;
+    let out = client.run_ok(vec!["devices".into(), "-l".into()], Duration::from_secs(10))?;
     Ok(parse::parse_devices_l(&out)
         .into_iter()
         .map(to_device)
@@ -104,10 +101,7 @@ pub fn resolve_serial(requested: Option<&str>, devices: &[Device]) -> Result<Str
         .filter(|d| d.state == DeviceState::Connected)
         .collect();
     match connected.len() {
-        0 => Err(AppError::new(
-            ErrorCode::NoDevice,
-            "no connected device",
-        )),
+        0 => Err(AppError::new(ErrorCode::NoDevice, "no connected device")),
         1 => Ok(connected[0].serial.clone()),
         _ => Err(AppError::new(
             ErrorCode::AmbiguousDevice,
@@ -256,7 +250,10 @@ pub fn get_network_info(adb: &str, serial: &str) -> Result<NetworkInfo, AppError
 }
 
 /// Raw `getprop` map (Diagnostics view).
-pub fn get_props(adb: &str, serial: &str) -> Result<std::collections::BTreeMap<String, String>, AppError> {
+pub fn get_props(
+    adb: &str,
+    serial: &str,
+) -> Result<std::collections::BTreeMap<String, String>, AppError> {
     validate_serial(serial)?;
     let client = AdbClient::new(adb);
     let out = client.run_ok(
@@ -293,8 +290,8 @@ impl Default for Coordinator {
     }
 }
 
-pub use crate::adb::parse::PackageMeta;
 pub use crate::adb::parse::parse_package_dump;
+pub use crate::adb::parse::PackageMeta;
 
 pub fn get_package_dump(adb: &str, serial: &str, pkg: &str) -> Result<PackageMeta, AppError> {
     validate_serial(serial)?;
@@ -302,11 +299,7 @@ pub fn get_package_dump(adb: &str, serial: &str, pkg: &str) -> Result<PackageMet
     let client = AdbClient::new(adb);
     let out = client.run_shell(serial, &format!("dumpsys package '{pkg}'"))?;
     if !out.success() {
-        return Err(AppError::from_process(
-            ErrorCode::NoDevice,
-            adb,
-            &out,
-        ));
+        return Err(AppError::from_process(ErrorCode::NoDevice, adb, &out));
     }
     parse_package_dump(&out.text()).ok_or_else(|| {
         AppError::new(
@@ -375,11 +368,7 @@ pub fn screenshot_bytes(adb: &str, serial: &str) -> Result<Vec<u8>, AppError> {
         TIMEOUT_MEDIA,
     )?;
     if !out.success() {
-        return Err(AppError::from_process(
-            ErrorCode::ProcessFailed,
-            adb,
-            &out,
-        ));
+        return Err(AppError::from_process(ErrorCode::ProcessFailed, adb, &out));
     }
     if out.stdout.len() < 8 || &out.stdout[1..4] != b"PNG" {
         return Err(AppError::new(

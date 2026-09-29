@@ -35,11 +35,7 @@ pub async fn file_list(
     let op = DeviceOperation::ListDir { path };
     let args = op.to_adb_args(Some(&serial))?;
     let h = blocking(move || {
-        let out = crate::processes::run_captured(
-            &adb,
-            &args,
-            crate::adb::client::TIMEOUT_DEVICE,
-        )?;
+        let out = crate::processes::run_captured(&adb, &args, crate::adb::client::TIMEOUT_DEVICE)?;
         if !out.success() {
             return Err(AppError::from_process(ErrorCode::ProcessFailed, &adb, &out));
         }
@@ -66,13 +62,7 @@ pub async fn file_rename(
     to: String,
 ) -> Result<OpResult, AppError> {
     let st = state.inner().clone();
-    execute_op(
-        st,
-        serial,
-        DeviceOperation::Rename { from, to },
-        None,
-    )
-    .await
+    execute_op(st, serial, DeviceOperation::Rename { from, to }, None).await
 }
 
 /// rm -rf — requires the typed word APAGAR (spec §53).

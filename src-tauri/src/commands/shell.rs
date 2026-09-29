@@ -44,7 +44,8 @@ pub fn shell_open(
     };
 
     st.shell_mgr.open(&id, &adb, &serial, Arc::new(on_line))?;
-    st.log.info(&format!("shell session {id} opened for {serial}"));
+    st.log
+        .info(&format!("shell session {id} opened for {serial}"));
     Ok(ShellSessionInfo {
         id,
         serial: serial.clone(),
@@ -53,11 +54,7 @@ pub fn shell_open(
 
 /// Writes user input to the session stdin.
 #[tauri::command]
-pub fn shell_write(
-    state: State<'_, AppState>,
-    id: String,
-    data: String,
-) -> Result<(), AppError> {
+pub fn shell_write(state: State<'_, AppState>, id: String, data: String) -> Result<(), AppError> {
     let st = state.inner().clone();
     st.shell_mgr.write(&id, &data)
 }

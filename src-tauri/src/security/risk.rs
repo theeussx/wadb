@@ -120,7 +120,7 @@ const SAFE: &[&str] = &[
 ];
 
 /// Prefix-based rules, checked in order (first match wins).
-const PREFIX_RULES: &[( &str, RiskLevel)] = &[
+const PREFIX_RULES: &[(&str, RiskLevel)] = &[
     ("com.android.providers.", RiskLevel::Critical),
     ("com.android.systemui", RiskLevel::Critical),
     ("com.android.settings", RiskLevel::Critical),
@@ -210,8 +210,14 @@ mod tests {
     #[test]
     fn critical_packages() {
         assert_eq!(classify_package("android"), RiskLevel::Critical);
-        assert_eq!(classify_package("com.android.systemui"), RiskLevel::Critical);
-        assert_eq!(classify_package("com.android.providers.telephony"), RiskLevel::Critical);
+        assert_eq!(
+            classify_package("com.android.systemui"),
+            RiskLevel::Critical
+        );
+        assert_eq!(
+            classify_package("com.android.providers.telephony"),
+            RiskLevel::Critical
+        );
     }
 
     #[test]
@@ -222,20 +228,30 @@ mod tests {
 
     #[test]
     fn unknown_is_never_assumed_safe() {
-        assert_eq!(classify_package("com.example.totallyunknown"), RiskLevel::Unknown);
+        assert_eq!(
+            classify_package("com.example.totallyunknown"),
+            RiskLevel::Unknown
+        );
         assert_eq!(classify_package("com.foo.ads"), RiskLevel::Unknown);
     }
 
     #[test]
     fn prefix_rules() {
         assert_eq!(classify_package("com.miui.videoplayer"), RiskLevel::LowRisk);
-        assert_eq!(classify_package("com.android.providers.settings.extra"), RiskLevel::Critical);
-        assert_eq!(classify_package("com.google.android.gms.update"), RiskLevel::Caution);
+        assert_eq!(
+            classify_package("com.android.providers.settings.extra"),
+            RiskLevel::Critical
+        );
+        assert_eq!(
+            classify_package("com.google.android.gms.update"),
+            RiskLevel::Caution
+        );
     }
 
     #[test]
     fn profiles_exclude_unknown() {
-        let p = profiles()
+        let available_profiles = profiles();
+        let p = available_profiles
             .iter()
             .find(|p| p.id == "balanced")
             .unwrap();

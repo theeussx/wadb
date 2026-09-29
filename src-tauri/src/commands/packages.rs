@@ -140,25 +140,19 @@ pub async fn package_extract(
     };
 
     // 1. Locate the APK on the device.
-    let apks = {
-        let h = run_readonly(
-            st.clone(),
-            Some(serial.clone()),
-            DeviceOperation::PackagePath { pkg: pkg.clone() },
-        )
-        .await?;
-        apks
-    };
+    let apks = run_readonly(
+        st.clone(),
+        Some(serial.clone()),
+        DeviceOperation::PackagePath { pkg: pkg.clone() },
+    )
+    .await?;
     let apk = apks
         .lines()
         .filter_map(|l| l.trim().strip_prefix("package:"))
         .map(|s| s.trim().to_string())
         .find(|s| !s.ends_with("split_config.*.apk"))
         .ok_or_else(|| {
-            AppError::new(
-                ErrorCode::ProcessFailed,
-                format!("no APK found for {pkg}"),
-            )
+            AppError::new(ErrorCode::ProcessFailed, format!("no APK found for {pkg}"))
         })?;
 
     // 2. Pull it.
@@ -186,13 +180,7 @@ pub async fn package_extract(
     let h = blocking(move || {
         let out = crate::processes::run_captured(
             &adb,
-            &[
-                "-s".into(),
-                serial,
-                "pull".into(),
-                apk,
-                dest_s,
-            ],
+            &["-s".into(), serial, "pull".into(), apk, dest_s],
             crate::adb::client::TIMEOUT_INSTALL,
         )?;
         if !out.success() {

@@ -51,24 +51,32 @@ impl LogcatManager {
         ];
         if let Some(spec) = spec {
             if !validate_logcat_spec(spec)? {
-                return Err(AppError::new(ErrorCode::InvalidArgument, format!("bad logcat spec: {spec}")));
+                return Err(AppError::new(
+                    ErrorCode::InvalidArgument,
+                    format!("bad logcat spec: {spec}"),
+                ));
             }
             args.push(spec.to_string());
         }
 
-        let handle =
-            spawn_streamed(adb, &args, &format!("adb -s {serial} logcat"), false, on_line)?;
-        self.sessions.lock().unwrap().insert(id.to_string(), handle);
+        let handle = spawn_streamed(
+            adb,
+            &args,
+            &format!("adb -s {serial} logcat"),
+            false,
+            on_line,
+        )?;
+        self.sessions
+            .lock()
+            .unwrap()
+            .insert(id.to_string(), Arc::clone(&handle));
         Ok(handle)
     }
 
     pub fn stop(&self, id: &str) -> Result<(), AppError> {
-        let handle = self
-            .sessions
-            .lock()
-            .unwrap()
-            .remove(id)
-            .ok_or_else(|| AppError::new(ErrorCode::FileNotFound, format!("no logcat session '{id}'")))?;
+        let handle = self.sessions.lock().unwrap().remove(id).ok_or_else(|| {
+            AppError::new(ErrorCode::FileNotFound, format!("no logcat session '{id}'"))
+        })?;
         handle.stop();
         Ok(())
     }

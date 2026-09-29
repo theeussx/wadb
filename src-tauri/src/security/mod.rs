@@ -75,9 +75,7 @@ pub fn validate_local_path(path: &str) -> Result<(), AppError> {
     let ok = !path.is_empty()
         && path.len() <= 4096
         && !path.contains('\0')
-        && !path
-            .chars()
-            .any(|c| (c as u32) < 0x20 || c == '\u{7f}');
+        && !path.chars().any(|c| (c as u32) < 0x20 || c == '\u{7f}');
     if ok {
         Ok(())
     } else {
@@ -95,9 +93,7 @@ pub fn validate_device_path(path: &str) -> Result<(), AppError> {
     let ok = path.starts_with('/')
         && path.len() <= 1024
         && !path.contains('\0')
-        && !path
-            .chars()
-            .any(|c| (c as u32) < 0x20 || c == '\u{7f}')
+        && !path.chars().any(|c| (c as u32) < 0x20 || c == '\u{7f}')
         && !path.split('/').any(|seg| seg == "..");
     if ok {
         Ok(())
@@ -148,10 +144,7 @@ pub fn validate_bitrate(bitrate: &str) -> Result<(), AppError> {
         && bitrate
             .chars()
             .all(|c| c.is_ascii_digit() || c == '.' || c == 'k' || c == 'M' || c == 'G')
-        && bitrate
-            .chars()
-            .next()
-            .map_or(false, |c| c.is_ascii_digit())
+        && bitrate.chars().next().map_or(false, |c| c.is_ascii_digit())
         && bitrate
             .chars()
             .last()

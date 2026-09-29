@@ -77,7 +77,7 @@ mod tests {
     fn run_ok_success_and_failure() {
         let c = AdbClient::new("/bin/echo");
         let out = c
-            .run_ok(vec!["-s".into(), "X".into(), "hello".into()], Duration::from_secs(5))
+            .run_ok(vec!["hello".into()], Duration::from_secs(5))
             .expect("echo should succeed");
         assert_eq!(out.trim(), "hello");
 
@@ -86,12 +86,10 @@ mod tests {
         let err = c2
             .run_ok(vec!["-c".into(), "exit 1".into()], Duration::from_secs(5))
             .expect_err("should fail");
-        assert!(
-            matches!(
-                err.code,
-                ErrorCode::ProcessFailed | ErrorCode::OperationRejected
-            )
-        );
+        assert!(matches!(
+            err.code,
+            ErrorCode::ProcessFailed | ErrorCode::OperationRejected
+        ));
     }
 
     #[test]

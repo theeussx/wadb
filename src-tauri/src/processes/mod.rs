@@ -8,23 +8,24 @@
 //! - No orphan processes: the `ProcessRegistry`, `ShellManager`,
 //!   `LogcatManager` and `TransferManager` all stop their children in `Drop`.
 
-mod shell;
 mod logcat;
+mod shell;
 mod transfer;
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use crate::error::{AppError, ErrorCode};
 
-pub use shell::ShellManager;
 pub use logcat::{validate_logcat_spec, LogcatManager};
+pub use shell::ShellManager;
 pub use transfer::{remote_file_size, TransferEvent, TransferManager};
 
 /// Result of a captured (short-lived) process run.
+#[derive(Debug)]
 pub struct Captured {
     pub stdout: Vec<u8>,
     pub stderr: String,
@@ -45,7 +46,11 @@ impl Captured {
 /// Runs a process to completion, capturing stdout/stderr, with a hard timeout.
 ///
 /// Blocks the calling thread — call from `spawn_blocking` in async commands.
-pub fn run_captured(executable: &str, args: &[String], timeout: Duration) -> Result<Captured, AppError> {
+pub fn run_captured(
+    executable: &str,
+    args: &[String],
+    timeout: Duration,
+) -> Result<Captured, AppError> {
     let mut child = match Command::new(executable)
         .args(args)
         .stdin(Stdio::null())
@@ -133,10 +138,9 @@ pub fn terminate_child(child: &mut Child) {
     #[cfg(unix)]
     {
         use std::os::unix::process::ExitStatusExt;
-        if let Some(pid) = child.id().map(|p| p as libc::pid_t) {
-            unsafe {
-                libc::kill(pid, libc::SIGTERM);
-            }
+        let pid = child.id() as libc::pid_t;
+        unsafe {
+            libc::kill(pid, libc::SIGTERM);
         }
         let deadline = Instant::now() + Duration::from_secs(3);
         loop {
@@ -168,9 +172,10 @@ pub fn terminate_child(child: &mut Child) {
 }
 
 /// A long-running streamed process (shell session, logcat, scrcpy, transfer).
+#[derive(Debug)]
 pub struct StreamHandle {
     pub child: Mutex<Option<Child>>,
-    pub stdin: Option<Mutex<std::process::Stdin>>,
+    pub stdin: Option<Mutex<ChildStdin>>,
     pub label: String,
 }
 
@@ -178,7 +183,10 @@ impl StreamHandle {
     /// Writes to the child's stdin (only for sessions opened with stdin).
     pub fn write(&self, data: &str) -> Result<(), AppError> {
         let Some(stdin) = self.stdin.as_ref() else {
-            return Err(AppError::new(ErrorCode::Unsupported, "process has no stdin"));
+            return Err(AppError::new(
+                ErrorCode::Unsupported,
+                "process has no stdin",
+            ));
         };
         let mut guard = stdin
             .lock()
@@ -216,7 +224,7 @@ impl StreamHandle {
         let Ok(guard) = self.child.lock() else {
             return None;
         };
-        guard.as_ref().and_then(|c| c.id())
+        guard.as_ref().map(|c| c.id())
     }
 }
 
@@ -241,7 +249,11 @@ pub fn spawn_streamed(
 ) -> Result<Arc<StreamHandle>, AppError> {
     let mut cmd = Command::new(executable);
     cmd.args(args)
-        .stdin(if use_stdin { Stdio::piped() } else { Stdio::null() })
+        .stdin(if use_stdin {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
@@ -274,7 +286,7 @@ pub fn spawn_streamed(
     }))
 }
 
-fn pump_lines<R: Read>(mut reader: R, mut on_line: impl FnMut(String)) {
+fn pump_lines<R: Read>(reader: R, mut on_line: impl FnMut(String)) {
     use std::io::BufRead;
     let mut buf = std::io::BufReader::new(reader);
     let mut line = String::new();
@@ -284,7 +296,7 @@ fn pump_lines<R: Read>(mut reader: R, mut on_line: impl FnMut(String)) {
             Ok(0) => break,
             Ok(_) => {
                 // Keep the trailing newline so terminals render correctly.
-                on_line(line);
+                on_line(std::mem::take(&mut line));
             }
             Err(_) => break,
         }
@@ -314,14 +326,15 @@ impl ProcessRegistry {
     }
 
     pub fn is_running(&self, id: &str) -> bool {
-        self.get(id)
-            .map(|h| h.is_alive())
-            .unwrap_or(false)
+        self.get(id).map(|h| h.is_alive()).unwrap_or(false)
     }
 
     pub fn stop(&self, id: &str) -> Result<(), AppError> {
         let Some(handle) = self.procs.lock().unwrap().remove(id) else {
-            return Err(AppError::new(ErrorCode::FileNotFound, format!("no process '{id}'")));
+            return Err(AppError::new(
+                ErrorCode::FileNotFound,
+                format!("no process '{id}'"),
+            ));
         };
         handle.stop();
         Ok(())
@@ -362,12 +375,8 @@ mod tests {
     /// whole captured path without any ADB at all.
     #[test]
     fn captured_success() {
-        let out = run_captured(
-            "/bin/echo",
-            &["hello".to_string()],
-            Duration::from_secs(5),
-        )
-        .expect("echo should run");
+        let out = run_captured("/bin/echo", &["hello".to_string()], Duration::from_secs(5))
+            .expect("echo should run");
         assert!(out.success());
         assert_eq!(out.text().trim(), "hello");
     }
@@ -388,12 +397,8 @@ mod tests {
     fn captured_timeout_kills_child() {
         // sleep 5 with a 200 ms timeout must be killed, and must not hang.
         let started = Instant::now();
-        let out = run_captured(
-            "/bin/sleep",
-            &["5".to_string()],
-            Duration::from_millis(200),
-        )
-        .expect("sleep should spawn");
+        let out = run_captured("/bin/sleep", &["5".to_string()], Duration::from_millis(200))
+            .expect("sleep should spawn");
         assert!(out.timed_out);
         assert!(!out.success());
         assert!(started.elapsed() < Duration::from_secs(4));
@@ -401,12 +406,8 @@ mod tests {
 
     #[test]
     fn captured_missing_tool() {
-        let err = run_captured(
-            "/nonexistent/tool-xyz",
-            &[],
-            Duration::from_secs(1),
-        )
-        .expect_err("should fail");
+        let err = run_captured("/nonexistent/tool-xyz", &[], Duration::from_secs(1))
+            .expect_err("should fail");
         assert!(matches!(
             err.code,
             ErrorCode::ToolNotFound | ErrorCode::ToolLaunchFailed
@@ -424,9 +425,17 @@ mod tests {
                 c.fetch_add(1, Ordering::SeqCst);
                 let _ = tx.send(line.trim().to_string());
             };
-            let handle =
-                spawn_streamed("/bin/sh", &["-c".into(), "for i in 1 2 3; do echo $i; sleep 0.1; done".into()], "test", false, Arc::new(on_line))
-                    .expect("sh should spawn");
+            let handle = spawn_streamed(
+                "/bin/sh",
+                &[
+                    "-c".into(),
+                    "for i in 1 2 3; do echo $i; sleep 0.1; done".into(),
+                ],
+                "test",
+                false,
+                Arc::new(on_line),
+            )
+            .expect("sh should spawn");
             // Let it produce a couple of lines, then stop early.
             std::thread::sleep(Duration::from_millis(250));
             handle.stop();

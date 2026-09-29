@@ -146,6 +146,9 @@ pub fn parse_dumpsys_battery(text: &str) -> BatteryInfo {
             info.plugged = Some(v);
         }
     }
+    info.temperature_c = info
+        .temperature
+        .map(|temperature| temperature as f32 / 10.0);
     info
 }
 
@@ -167,9 +170,11 @@ pub fn parse_df(text: &str, path: &str) -> Option<DiskUsage> {
     for line in text.lines().rev() {
         let t: Vec<&str> = line.split_whitespace().collect();
         if t.len() >= 6 {
-            if let (Ok(total), Ok(used), Ok(avail)) =
-                (t[1].parse::<u64>(), t[2].parse::<u64>(), t[3].parse::<u64>())
-            {
+            if let (Ok(total), Ok(used), Ok(avail)) = (
+                t[1].parse::<u64>(),
+                t[2].parse::<u64>(),
+                t[3].parse::<u64>(),
+            ) {
                 return Some(DiskUsage {
                     total_mb: total,
                     used_mb: used,
@@ -188,8 +193,12 @@ pub fn parse_df(text: &str, path: &str) -> Option<DiskUsage> {
 
 pub fn parse_meminfo_total_mb(text: &str) -> Option<u64> {
     for line in text.lines() {
-        if let Some(rest) = line.strip_prefix("MemTotal:") {
-            let num: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+        if let Some(rest) = line.trim_start().strip_prefix("MemTotal:") {
+            let num: String = rest
+                .trim_start()
+                .chars()
+                .take_while(|c| c.is_ascii_digit())
+                .collect();
             if let Ok(kb) = num.parse::<u64>() {
                 return Some(kb / 1024);
             }
@@ -292,10 +301,7 @@ impl PackageIter {
 
 fn value_of(line: &str, key: &str) -> Option<String> {
     let rest = line.trim().strip_prefix(key)?;
-    let v: String = rest
-        .chars()
-        .take_while(|c| !c.is_whitespace())
-        .collect();
+    let v: String = rest.chars().take_while(|c| !c.is_whitespace()).collect();
     if v.is_empty() {
         None
     } else {
@@ -336,11 +342,12 @@ pub fn parse_ip_addr(text: &str) -> Vec<NetIface> {
     let mut current: Option<String> = None;
     for line in text.lines() {
         let t: Vec<&str> = line.split_whitespace().collect();
-        if t.len() >= 2 && t[0].parse::<u32>().is_ok() && t[1].ends_with(':') {
+        if t.len() >= 2 && t[0].trim_end_matches(':').parse::<u32>().is_ok() && t[1].ends_with(':')
+        {
             current = Some(t[1][..t[1].len() - 1].to_string());
             continue;
         }
-        if line.starts_with("inet ") || line.starts_with("inet\t") {
+        if line.trim_start().starts_with("inet ") || line.trim_start().starts_with("inet\t") {
             if let (Some(name), Some(ip_part)) = (current.clone(), t.get(1)) {
                 if name != "lo" {
                     if let Some((ip, prefix)) = ip_part.split_once('/') {
@@ -411,10 +418,17 @@ pub fn parse_ls(text: &str) -> Vec<FileEntry> {
         if preview.len() < 8 {
             continue;
         }
-        if !matches!(preview[0].chars().next(), Some('d' | '-' | 'l' | 'c' | 'b' | 'p' | 's')) {
+        if !matches!(
+            preview[0].chars().next(),
+            Some('d' | '-' | 'l' | 'c' | 'b' | 'p' | 's')
+        ) {
             continue;
         }
-        let cols = if preview[5].chars().next().map_or(false, |c| c.is_ascii_digit()) {
+        let cols = if preview[5]
+            .chars()
+            .next()
+            .map_or(false, |c| c.is_ascii_digit())
+        {
             7 // "YYYY-MM-DD HH:MM name"
         } else {
             8 // "Mon DD HH:MM name"
@@ -471,7 +485,10 @@ DD:EE            offline
 
         assert_eq!(v[0].serial, "23021RAA2Y");
         assert_eq!(v[0].state, "device");
-        assert_eq!(v[0].attrs.get("model").map(|s| s.as_str()), Some("Redmi_Note_12"));
+        assert_eq!(
+            v[0].attrs.get("model").map(|s| s.as_str()),
+            Some("Redmi_Note_12")
+        );
         assert_eq!(v[0].attrs.get("usb").map(|s| s.as_str()), Some("1-1"));
 
         assert_eq!(v[1].serial, "192.168.1.50:5555");
@@ -489,9 +506,17 @@ DD:EE            offline
 
     #[test]
     fn getprop_parsing() {
-        let v = parse_getprop("ro.product.model: Redmi Note 12\nro.build.version.release: 15\nbad line\nro.x: 1\n");
-        assert_eq!(v.get("ro.product.model").map(|s| s.as_str()), Some("Redmi Note 12"));
-        assert_eq!(v.get("ro.build.version.release").map(|s| s.as_str()), Some("15"));
+        let v = parse_getprop(
+            "ro.product.model: Redmi Note 12\nro.build.version.release: 15\nbad line\nro.x: 1\n",
+        );
+        assert_eq!(
+            v.get("ro.product.model").map(|s| s.as_str()),
+            Some("Redmi Note 12")
+        );
+        assert_eq!(
+            v.get("ro.build.version.release").map(|s| s.as_str()),
+            Some("15")
+        );
         assert!(!v.contains_key("bad"));
     }
 
@@ -499,8 +524,14 @@ DD:EE            offline
     fn getprop_parsing_bracketed_real_format() {
         // This is what `adb shell getprop` actually prints.
         let v = parse_getprop("[ro.product.model]: [Redmi Note 12]\n[ro.build.version.release]: [15]\n[init.svc.adbd]: [running]\n");
-        assert_eq!(v.get("ro.product.model").map(|s| s.as_str()), Some("Redmi Note 12"));
-        assert_eq!(v.get("ro.build.version.release").map(|s| s.as_str()), Some("15"));
+        assert_eq!(
+            v.get("ro.product.model").map(|s| s.as_str()),
+            Some("Redmi Note 12")
+        );
+        assert_eq!(
+            v.get("ro.build.version.release").map(|s| s.as_str()),
+            Some("15")
+        );
         assert_eq!(v.get("init.svc.adbd").map(|s| s.as_str()), Some("running"));
     }
 
@@ -582,8 +613,14 @@ DD:EE            offline
         assert_eq!(pkgs.len(), 2);
         assert_eq!(pkgs[0].name, "com.android.chrome");
         assert_eq!(pkgs[0].version_name.as_deref(), Some("128.0.6613"));
-        assert_eq!(pkgs[0].code_path.as_deref(), Some("/data/app/com.android.chrome-abc"));
-        assert_eq!(pkgs[1].code_path.as_deref(), Some("/data/app/com.miui.msa-xyz"));
+        assert_eq!(
+            pkgs[0].code_path.as_deref(),
+            Some("/data/app/com.android.chrome-abc")
+        );
+        assert_eq!(
+            pkgs[1].code_path.as_deref(),
+            Some("/data/app/com.miui.msa-xyz")
+        );
 
         let single = parse_package_dump(out).expect("some");
         assert_eq!(single.name, "com.android.chrome");

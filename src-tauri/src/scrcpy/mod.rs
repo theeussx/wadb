@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn argv_building() {
-        let mut o = ScrcpyOptions {
+        let o = ScrcpyOptions {
             max_size: Some(1280),
             max_fps: Some(30),
             bitrate: Some("2M".into()),
@@ -207,12 +207,17 @@ mod tests {
         assert_eq!(
             args,
             vec![
-                "-s", "S1",
-                "--max-size", "1280",
-                "--max-fps", "30",
-                "--bit-rate", "2M",
+                "-s",
+                "S1",
+                "--max-size",
+                "1280",
+                "--max-fps",
+                "30",
+                "--bit-rate",
+                "2M",
                 "--turn-screen-off",
-                "--record", "/tmp/rec.mp4",
+                "--record",
+                "/tmp/rec.mp4",
             ]
         );
     }

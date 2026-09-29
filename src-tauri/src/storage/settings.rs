@@ -67,10 +67,7 @@ impl Settings {
                 format!("invalid language: {}", self.language),
             ));
         }
-        if !matches!(
-            self.performance_mode.as_str(),
-            "normal" | "low" | "ultra"
-        ) {
+        if !matches!(self.performance_mode.as_str(), "normal" | "low" | "ultra") {
             return Err(AppError::new(
                 ErrorCode::InvalidArgument,
                 format!("invalid performance mode: {}", self.performance_mode),
@@ -127,9 +124,11 @@ impl SettingsStore {
     pub fn save(&self, new: &Settings) -> Result<(), AppError> {
         new.validate()?;
         let tmp = self.path.with_extension("json.tmp");
-        fs::write(&tmp, serde_json::to_string_pretty(new).map_err(|e| {
-            AppError::new(ErrorCode::Unexpected, format!("serialize: {e}"))
-        })?)?;
+        fs::write(
+            &tmp,
+            serde_json::to_string_pretty(new)
+                .map_err(|e| AppError::new(ErrorCode::Unexpected, format!("serialize: {e}")))?,
+        )?;
         fs::rename(&tmp, &self.path)?;
         *self.current.lock().unwrap() = new.clone();
         Ok(())

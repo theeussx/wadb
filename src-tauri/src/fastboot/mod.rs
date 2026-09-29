@@ -7,10 +7,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::adb::client::AdbClient;
-use crate::error::{AppError, ErrorCode};
+use crate::adb::operations::RebootTarget;
+use crate::error::AppError;
 use crate::processes::Captured;
 use crate::security::{validate_getvar, validate_local_path, validate_partition};
-use crate::adb::operations::RebootTarget;
 use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize)]
@@ -166,18 +166,38 @@ mod tests {
 
     #[test]
     fn destructive_flags() {
-        assert!(FastbootOperation::Erase { partition: "cache".into() }.is_destructive());
-        assert!(FastbootOperation::Flash { partition: "boot".into(), file: "/tmp/boot.img".into() }.is_destructive());
+        assert!(FastbootOperation::Erase {
+            partition: "cache".into()
+        }
+        .is_destructive());
+        assert!(FastbootOperation::Flash {
+            partition: "boot".into(),
+            file: "/tmp/boot.img".into()
+        }
+        .is_destructive());
         assert!(FastbootOperation::Unlock.is_destructive());
-        assert!(!FastbootOperation::Reboot { target: RebootTarget::System }.is_destructive());
-        assert!(!FastbootOperation::Getvar { var: "product".into() }.is_destructive());
+        assert!(!FastbootOperation::Reboot {
+            target: RebootTarget::System
+        }
+        .is_destructive());
+        assert!(!FastbootOperation::Getvar {
+            var: "product".into()
+        }
+        .is_destructive());
 
         assert_eq!(
-            FastbootOperation::Erase { partition: "cache".into() }.required_confirmation(),
+            FastbootOperation::Erase {
+                partition: "cache".into()
+            }
+            .required_confirmation(),
             Some("APAGAR")
         );
         assert_eq!(
-            FastbootOperation::Flash { partition: "boot".into(), file: "/tmp/x".into() }.required_confirmation(),
+            FastbootOperation::Flash {
+                partition: "boot".into(),
+                file: "/tmp/x".into()
+            }
+            .required_confirmation(),
             Some("FLASHAR")
         );
     }
@@ -188,16 +208,17 @@ mod tests {
             partition: "boot".into(),
             file: "/tmp/boot.img".into(),
         };
-        assert_eq!(op.to_args().unwrap(), vec!["flash", "boot", "/tmp/boot.img"]);
+        assert_eq!(
+            op.to_args().unwrap(),
+            vec!["flash", "boot", "/tmp/boot.img"]
+        );
 
         let bad = FastbootOperation::Erase {
             partition: "boot;reboot".into(),
         };
         assert!(bad.to_args().is_err());
 
-        let bad = FastbootOperation::Getvar {
-            var: "-v".into(),
-        };
+        let bad = FastbootOperation::Getvar { var: "-v".into() };
         assert!(bad.to_args().is_err());
     }
 }
