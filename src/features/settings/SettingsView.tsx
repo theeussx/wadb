@@ -164,7 +164,9 @@ export function SettingsView() {
           <div className="dim small" style={{ margin: '-4px 0 0 70px' }}>
             {status('scrcpy')?.found
               ? `✓ ${status('scrcpy')?.path} — ${status('scrcpy')?.version ?? ''}`
-              : `✗ ${t('tools.missing', { tool: 'scrcpy' })}`}
+              : settings.scrcpyPath
+                ? `✗ ${t('settings.tools.invalidPath')}`
+                : `✗ ${t('tools.missing', { tool: 'scrcpy' })}`}
           </div>
           <ToolRow
             tool="fastboot"

@@ -582,7 +582,8 @@ const enUS: Record<string, string> = {
   'settings.tools': 'Tools',
   'settings.tools.browse': 'Browse',
   'settings.tools.hint':
-    'Leave blank to auto-detect (PATH, ANDROID_HOME, ~/Android/Sdk…).',
+    'Leave blank to auto-detect (PATH, ~/Downloads, ~/.local/bin…).',
+  'settings.tools.invalidPath': 'saved path does not exist; select the downloaded executable or clear the field',
   'settings.tools.manualHint': 'manual path for {tool}',
   'settings.version': 'Version',
 
