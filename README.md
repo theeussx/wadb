@@ -50,16 +50,10 @@
 
 ## Identidade
 
-**Zittodb** é a marca do projeto: **Zitto** + **db**.
+**Zittodb** é a marca do projeto: **Zitto** + **adb**.
 
-| Parte | Significado |
-|---|---|
-| **Zitto** | de *zitto* (it. "silêncio") e de *zit/zero* — leve, calado, sem ruído de fundo. |
-| **db** | de **D**ebug **B**ridge. **Não é um banco de dados.** |
 
 - **Pronúncia:** /ˈʒi.tɔ.db/ — “zí-toh-db”.
-- **Wordmark:** `Zittodb` (Z maiúsculo, resto minúsculo). Sem “Studio”, sem “ADB” na frente.
-- **Marca gráfica:** um **Z** com uma barra de cursor embaixo — o “Z” do nome e a
   homenagem ao prompt `>_` do terminal, já que o Zittodb é a GUI do ADB.
   Regenerável com `npm run icons` (ver [`scripts/generate-icons.mjs`](scripts/generate-icons.mjs)).
 - **Paleta:** as cores do app, retiradas de [`src/styles/global.css`](src/styles/global.css).
@@ -295,35 +289,191 @@ make test-rust        # cargo test (parsers, allowlist, segurança, processos, i
 
 ## Arquitetura
 
+O Zittodb segue uma arquitetura **local-first, desktop-first e orientada a fronteiras**. A interface descreve a intenção da operação; o backend Rust valida, autoriza, monta os argumentos e controla a execução das ferramentas do sistema.
+
+### Visão geral
+
+```mermaid
+flowchart TB
+    USER([Usuário])
+
+    subgraph FRONTEND["Frontend · React + TypeScript"]
+        UI["UI / Features"]
+        STORE["Zustand Store"]
+        BRIDGE["Bridge<br/>TauriBridge · LocalBridge · MockBridge"]
+    end
+
+    subgraph DESKTOP["Desktop · Tauri 2 + Rust"]
+        COMMANDS["Tauri Commands"]
+        OPERATIONS["Typed Operations<br/>DeviceOperation · FastbootOperation"]
+        SECURITY["Security Layer<br/>Validation · Allowlist · Risk"]
+        PROCESS["ProcessRegistry<br/>Timeout · Cancel · Cleanup"]
+        STORAGE["Local Storage<br/>Settings · Audit · History"]
+    end
+
+    subgraph TOOLS["System Tools"]
+        ADB["adb"]
+        SCRCPY["scrcpy"]
+        FASTBOOT["fastboot"]
+    end
+
+    ANDROID["Android Device<br/>USB · Wi-Fi · Emulator"]
+
+    USER --> UI
+    UI --> STORE
+    UI --> BRIDGE
+    BRIDGE -->|invoke / events| COMMANDS
+    COMMANDS --> OPERATIONS
+    OPERATIONS --> SECURITY
+    SECURITY --> PROCESS
+    COMMANDS --> STORAGE
+    PROCESS --> ADB
+    PROCESS --> SCRCPY
+    PROCESS --> FASTBOOT
+    ADB --> ANDROID
+    SCRCPY --> ANDROID
+    FASTBOOT --> ANDROID
 ```
-┌────────────────────────────────────────────────────────────┐
-│ Frontend (React + TypeScript)                               │
-│  views → store (zustand) → services/bridge.ts              │
-│                     (única fronteira)                      │
-└──────────────────────────┬─────────────────────────────────┘
-                           │ invoke (operações tipadas) + eventos
-┌──────────────────────────▼─────────────────────────────────┐
-│ Backend (Rust, Tauri 2)                                    │
-│  commands/* ──► adb/operations (allowlist) ──► processes/  │
-│                 security/ (validação + risco)              │
-│                 storage/ (settings, auditoria, histórico)  │
-└──────────────────────────┬─────────────────────────────────┘
-                           │ vetores argv (std::process)
-              adb · scrcpy · fastboot (do sistema)
+
+### Fluxo de uma operação
+
+Uma operação percorre uma cadeia única e controlada. A UI não constrói comandos de shell e não decide como um processo externo será executado.
+
+```mermaid
+flowchart LR
+    A["Usuário"] --> B["Feature"]
+    B --> C["Bridge"]
+    C --> D["Tauri Command"]
+    D --> E["Typed Operation"]
+    E --> F["Validation"]
+    F --> G{"Operação de risco?"}
+    G -->|Não| H["ProcessRegistry"]
+    G -->|Sim| I["Confirmação explícita"]
+    I -->|Confirmada| H
+    I -->|Cancelada| X["Abortar"]
+    H --> J["argv validado"]
+    J --> K["adb / scrcpy / fastboot"]
+    K --> L["Android"]
+    L --> M["stdout / stderr / status / eventos"]
+    M --> N["Bridge → UI"]
+    M --> O["Auditoria, quando aplicável"]
 ```
 
-Quatro princípios, aplicados sem exceção:
+### Fronteiras da arquitetura
 
-1. **Leve primeiro** — sem Electron, sem ADB embutido: usamos as ferramentas do sistema.
-2. **O backend é dono da execução** — o frontend manda *o quê* fazer, nunca *como*.
-3. **Local-first/offline** — sem rede além da conversa com o aparelho.
-4. **Nada de reimplementar o protocolo ADB** — quem fala ADB é o `adb`.
+| Camada | Responsabilidade | Pode acessar | Não deve acessar |
+|---|---|---|---|
+| **Interface** | Renderização e interação | estado, componentes, `Bridge` | processos, shell, `argv` |
+| **Estado** | Estado da aplicação e UI | serviços e contratos | execução de processos |
+| **Bridge** | Comunicação frontend ↔ backend | Tauri, serviço local, mock | detalhes internos de execução |
+| **Commands** | Entrada das operações no Rust | operações, segurança, storage | confiar cegamente na UI |
+| **Operations** | Representar ações permitidas | validação e processos | comandos arbitrários |
+| **Security** | Validação e risco | serial, path, pacote, partição | executar processos |
+| **Processes** | Execução e ciclo de vida | `std::process`, timeout, cancelamento | decidir a intenção da operação |
+| **Storage** | Persistência local | settings, auditoria, histórico | telemetria ou dados remotos |
 
-`src/services/bridge.ts` define a interface `Bridge` (56 métodos) com duas implementações:
-`TauriBridge` (invoke) e `MockBridge` (demo/testes). Erros seguem um contrato único,
-`AppError { code, details }`, com códigos como `NO_DEVICE`, `DEVICE_UNAUTHORIZED`,
-`CONFIRMATION_REQUIRED`, `FILE_EXISTS`… Details em
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+### Contrato `Bridge`
+
+`src/services/bridge.ts` é a principal fronteira entre React e o ambiente de execução. O contrato possui **56 métodos** e possui implementações para desktop, desenvolvimento local e demonstração/testes:
+
+```mermaid
+flowchart TB
+    CONTRACT["Bridge · contrato único"]
+    TAURI["TauriBridge\ninvoke → Rust"]
+    LOCAL["LocalBridge\nHTTP loopback → Vite"]
+    MOCK["MockBridge\ndemo / testes"]
+
+    CONTRACT --> TAURI
+    CONTRACT --> LOCAL
+    CONTRACT --> MOCK
+```
+
+- **`TauriBridge`** — usado pelo aplicativo desktop; encaminha operações para os comandos Rust.
+- **`LocalBridge`** — usado durante o desenvolvimento no navegador; conversa com o serviço ADB local integrado ao Vite.
+- **`MockBridge`** — reproduz o contrato sem executar ferramentas reais, permitindo demo e testes de UI.
+
+O frontend conhece o contrato, não a implementação. Isso permite trocar o ambiente sem reescrever as features.
+
+### Operações tipadas e allowlist
+
+A intenção do usuário é convertida em uma operação explícita antes de chegar ao processo externo:
+
+```text
+Intenção do usuário
+       │
+       ▼
+DeviceOperation / FastbootOperation
+       │
+       ▼
+Validação + allowlist
+       │
+       ▼
+argv explícito
+       │
+       ▼
+ProcessRegistry
+       │
+       ▼
+adb / fastboot / scrcpy
+```
+
+O backend evita deliberadamente comandos montados através de shell genérico, como `sh -c`. O `argv` é construído de forma estruturada e validada no Rust.
+
+### Concorrência por dispositivo
+
+O módulo `src-tauri/src/devices/` possui um `Coordinator` para controlar operações por serial. A ideia é evitar operações concorrentes conflitantes sobre o mesmo aparelho sem impedir que dispositivos diferentes sejam tratados independentemente quando a operação permitir.
+
+```text
+Device A ──► lock(A) ──► operação ──► unlock(A)
+Device B ──► lock(B) ──► operação ──► unlock(B)
+```
+
+O serial explícito também faz parte do contrato: quando uma operação depende de um dispositivo, o alvo é definido por `-s SERIAL`.
+
+### Processos e eventos
+
+`src-tauri/src/processes/` centraliza o ciclo de vida de processos externos: criação, registro, timeout, cancelamento, encerramento, sessões persistentes, transferências e streaming de `logcat`.
+
+```text
+ProcessRegistry
+     │
+     ├── shell
+     ├── logcat
+     ├── transfer
+     ├── scrcpy
+     └── operações pontuais
+```
+
+Processos temporários seguem a política de encerramento documentada no projeto: `SIGTERM` → até 3 s → `SIGKILL` quando necessário. Eventos internos usam o namespace `zittodb:*`, por exemplo `zittodb:screenshot`.
+
+### Persistência local
+
+O estado persistente fica no filesystem local, organizado por `src-tauri/src/storage/`:
+
+```text
+~/.config/app.zittodb.desktop/
+├── settings.json
+└── audit.jsonl
+
+~/.local/share/app.zittodb.desktop/
+└── logs/
+    └── zittodb.log
+```
+
+Não há banco de dados nem telemetria. A auditoria usa JSONL e mantém operações que podem ser revertidas quando o domínio suporta reversão.
+
+### Princípios arquiteturais
+
+1. **Leve primeiro** — sem Electron e sem ADB embutido; o Zittodb utiliza as ferramentas do sistema.
+2. **O backend é dono da execução** — o frontend informa *o quê* fazer, não *como* executar.
+3. **Local-first/offline** — não há serviço remoto necessário para controlar o aparelho.
+4. **Operações tipadas** — novas ações entram na allowlist e precisam de testes.
+5. **Sem shell genérico** — nada de `sh -c` para montar comandos dinamicamente.
+6. **Serial explícito** — operações de dispositivo não escolhem implicitamente "qualquer dispositivo".
+7. **Segurança no backend** — confirmação de UI não substitui validação do Rust.
+8. **Sem reimplementar ADB** — quem fala o protocolo ADB é o `adb`.
+
+`src/services/bridge.ts` define a interface `Bridge` e o contrato de erro compartilhado `AppError { code, details }`, com códigos como `NO_DEVICE`, `DEVICE_UNAUTHORIZED`, `CONFIRMATION_REQUIRED` e `FILE_EXISTS`. Detalhes adicionais estão em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
@@ -354,148 +504,244 @@ Modelo de ameaças completo em [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ## Estrutura do projeto
 
+A organização do repositório acompanha as fronteiras da arquitetura. O frontend é organizado por domínio de interface; o backend é dividido por execução, segurança, processos e persistência.
+
+### Mapa dos módulos
+
+```mermaid
+flowchart TB
+    ROOT["zittodb/"]
+
+    ROOT --> SRC["src/"]
+    ROOT --> TAURI["src-tauri/"]
+    ROOT --> DOCS["docs/"]
+    ROOT --> TESTS["tests/"]
+    ROOT --> SCRIPTS["scripts/"]
+    ROOT --> SERVER["server/local.ts"]
+
+    subgraph FE["Frontend · src/"]
+        FEATURES["features/<br/>devices · screen · apps · debloat<br/>files · shell · logs · diagnostics<br/>builder · fastboot · history · settings"]
+        COMPONENTS["components/<br/>UI compartilhada"]
+        SERVICES["services/<br/>bridge · device · mock · update"]
+        STORES["stores/<br/>estado Zustand"]
+        TYPES["types/ · i18n/ · hooks/ · config/ · styles/"]
+    end
+
+    SRC --> FEATURES
+    SRC --> COMPONENTS
+    SRC --> SERVICES
+    SRC --> STORES
+    SRC --> TYPES
+
+    subgraph BE["Backend · src-tauri/src/"]
+        COMMANDS["commands/<br/>superfície Tauri"]
+        ADB["adb/<br/>client · operations · parse"]
+        DEVICES["devices/<br/>Coordinator"]
+        PROCESS["processes/<br/>registry · shell · logcat · transfer"]
+        SECURITY["security/<br/>validators · risk"]
+        STORAGE["storage/<br/>settings · audit · history"]
+        SCRCPY["scrcpy/"]
+        FASTBOOT["fastboot/"]
+    end
+
+    TAURI --> COMMANDS
+    TAURI --> ADB
+    TAURI --> DEVICES
+    TAURI --> PROCESS
+    TAURI --> SECURITY
+    TAURI --> STORAGE
+    TAURI --> SCRCPY
+    TAURI --> FASTBOOT
 ```
+
+### Árvore do repositório
+
+```text
 zittodb/
 ├── README.md                        # este arquivo
 ├── Makefile                         # atalhos de desenvolvimento (make help)
 ├── package.json                     # scripts npm, dependências e metadados
 ├── package-lock.json                # lockfile — use npm ci
-├── tsconfig.json                    # TS estrito: strict, noUnusedLocals, noUnusedParameters
-├── vite.config.ts                   # build, dev server (porta 1420) e plugin do backend local
-├── index.html                       # shell HTML: título, meta, tema inicial
+├── tsconfig.json                    # TypeScript estrito
+├── vite.config.ts                   # build, dev server e serviço local
+├── index.html                       # shell HTML
 ├── .gitignore
 │
 ├── docs/
-│   ├── ARCHITECTURE.md              # camadas, fluxo de uma operação, eventos, timeouts
+│   ├── ARCHITECTURE.md              # camadas, fluxo, eventos e timeouts
 │   ├── SECURITY.md                  # modelo de ameaças e controles
-│   ├── DEVELOPMENT.md               # toolchain, builds, scripts, flatpak, debug
-│   ├── CONTRIBUTING.md              # regras inegociáveis e checklist de PR
+│   ├── DEVELOPMENT.md               # toolchain, builds, debug e performance
+│   ├── CONTRIBUTING.md              # regras e checklist de PR
 │   └── assets/
-│       ├── zittodb-logo.svg         # lockup da marca (README)
-│       └── zittodb-mark.svg         # só a marca
+│       ├── zittodb-logo.svg         # lockup da marca
+│       └── zittodb-mark.svg         # marca compacta
 │
 ├── scripts/
-│   ├── check-deps.sh                # adb/scrcpy/fastboot + versões (honra ZITTODB_PATH)
-│   ├── generate-icons.mjs           # gera os ícones PNG do Tauri sem dependências
-│   └── measure-performance.sh       # medições pontuais de tempo/memória
+│   ├── check-deps.sh                # adb/scrcpy/fastboot + versões
+│   ├── generate-icons.mjs           # geração dos ícones do Tauri
+│   └── measure-performance.sh       # medições pontuais
 │
 ├── server/
-│   └── local.ts                     # API ADB local do navegador (plugin do Vite, só dev)
+│   └── local.ts                     # API ADB local do navegador (dev)
 │
-├── src/                             # ── FRONTEND (React + TypeScript) ──
+├── src/                             # ── FRONTEND ──
 │   ├── main.tsx                     # bootstrap React
-│   ├── App.tsx                      # monta o shell, orça o evento zittodb:screenshot
+│   ├── App.tsx                      # shell e eventos globais
 │   ├── app/
-│   │   └── AppShell.tsx             # sidebar, topbar, roteamento interno, banner de update
-│   ├── components/                  # primitivos de UI compartilhados
-│   │   ├── ui.tsx                   # Button, Badge, Spinner, EmptyState, ProgressBar, formatação
-│   │   ├── Modal.tsx                # diálogo base (foco, ESC, backdrop)
-│   │   ├── ConfirmDialog.tsx        # confirmação digitada (palavra-chave obrigatória)
-│   │   ├── Toasts.tsx               # notificações de sucesso/erro/info
-│   │   └── UpdateBanner.tsx         # aviso de nova versão (metadados públicos)
+│   │   └── AppShell.tsx             # sidebar, topbar e navegação
+│   ├── components/                  # componentes compartilhados
+│   │   ├── ui.tsx
+│   │   ├── Modal.tsx
+│   │   ├── ConfirmDialog.tsx
+│   │   ├── Toasts.tsx
+│   │   └── UpdateBanner.tsx
 │   ├── config/
-│   │   └── app.ts                   # identidade da marca, defaults, presets scrcpy, atalhos
-│   ├── features/                    # uma pasta por área da interface
-│   │   ├── devices/
-│   │   │   ├── DeviceList.tsx       # lista de dispositivos, Wi-Fi, estados
-│   │   │   └── DeviceDashboard.tsx  # as 8 abas do dispositivo selecionado
-│   │   ├── screen/ScreenPanel.tsx   # scrcpy: presets, flags, gravação
-│   │   ├── apps/AppsView.tsx        # listar, abrir, ativar/desativar, extrair APK
-│   │   ├── debloat/DebloatView.tsx  # perfis, risco, lote, reversão
-│   │   ├── files/FilesView.tsx      # /sdcard, push/pull, mkdir, renomear, apagar
-│   │   ├── shell/ShellView.tsx      # sessão de shell por dispositivo
-│   │   ├── logs/LogsView.tsx        # logcat com filtro, pausa e download
-│   │   ├── diagnostics/DiagnosticsView.tsx  # rede, armazenamento, bateria
-│   │   ├── builder/CommandBuilder.tsx       # monta e pré-visualiza o argv
-│   │   ├── fastboot/FastbootView.tsx        # devices, getvar, flash, erase, unlock
-│   │   ├── history/HistoryView.tsx          # auditoria + Reverter
-│   │   └── settings/SettingsView.tsx        # tema, idioma, perf, ferramentas, sobre
+│   │   └── app.ts                   # identidade, defaults, presets e atalhos
+│   ├── features/
+│   │   ├── devices/                 # lista e dashboard do dispositivo
+│   │   ├── screen/                  # scrcpy, presets e gravação
+│   │   ├── apps/                    # pacotes, APK e ações de app
+│   │   ├── debloat/                 # perfis, risco e reversão
+│   │   ├── files/                   # /sdcard, push/pull e operações
+│   │   ├── shell/                   # shell persistente
+│   │   ├── logs/                    # logcat e filtros
+│   │   ├── diagnostics/             # rede, armazenamento e bateria
+│   │   ├── builder/                 # pré-visualização de argv
+│   │   ├── fastboot/                # operações fastboot
+│   │   ├── history/                 # auditoria e reversão
+│   │   └── settings/                # preferências e ferramentas
 │   ├── hooks/
-│   │   └── useShortcuts.ts          # atalhos globais de teclado
+│   │   └── useShortcuts.ts          # atalhos globais
 │   ├── i18n/
-│   │   ├── index.ts                 # t(key, params) + detecção de idioma
-│   │   ├── pt-BR.ts                 # dicionário pt-BR
-│   │   └── en-US.ts                 # dicionário en-US (o teste falha se faltar chave)
+│   │   ├── index.ts
+│   │   ├── pt-BR.ts
+│   │   └── en-US.ts
 │   ├── services/
-│   │   ├── bridge.ts                # interface Bridge + TauriBridge + LocalBridge + getBridge()
-│   │   ├── deviceService.ts         # helpers de busca compartilhados (refresh, toasts)
-│   │   ├── mock.ts                  # MockBridge: demo no navegador e testes de UI
-│   │   └── updateService.ts         # metadados de release no GitHub (nunca baixa nada)
+│   │   ├── bridge.ts                # Bridge + implementações
+│   │   ├── deviceService.ts         # helpers de dispositivos
+│   │   ├── mock.ts                  # MockBridge
+│   │   └── updateService.ts         # metadados públicos de release
 │   ├── stores/
-│   │   └── app.ts                   # store zustand mínimo: settings, dispositivos, UI
+│   │   └── app.ts                   # estado Zustand
 │   ├── styles/
-│   │   └── global.css               # tema claro/escuro + modos de desempenho
+│   │   └── global.css               # tema e modos de desempenho
 │   └── types/
-│       └── index.ts                 # tipos compartilhados e o contrato AppError
+│       └── index.ts                 # tipos e AppError
 │
-├── tests/                           # vitest (jsdom)
-│   ├── setup.ts                     # matchers e globals
-│   ├── i18n.test.ts                 # paridade pt-BR ↔ en-US
-│   ├── mock-bridge.test.ts          # contrato completo do MockBridge
-│   ├── presets.test.ts              # presets de scrcpy e defaults
-│   ├── confirm-dialog.test.tsx      # confirmação digitada bloqueia sem a palavra
-│   ├── logs-view.test.tsx           # renderização da aba de logs
-│   ├── local-backend.test.ts        # origem, cabeçalho e allowlist do serviço local
-│   └── update-service.test.ts       # comparação de versões
+├── tests/                           # ── FRONTEND TESTS ──
+│   ├── setup.ts
+│   ├── i18n.test.ts
+│   ├── mock-bridge.test.ts
+│   ├── presets.test.ts
+│   ├── confirm-dialog.test.tsx
+│   ├── logs-view.test.tsx
+│   ├── local-backend.test.ts
+│   └── update-service.test.ts
 │
-└── src-tauri/                       # ── BACKEND (Rust / Tauri 2) ──
-    ├── Cargo.toml / Cargo.lock      # crate `zittodb` (lib `zittodb_lib`)
-    ├── build.rs                     # hook de build do tauri-build
-    ├── tauri.conf.json              # produto, janela, segurança e bundle (AppImage + .deb)
-    ├── capabilities/default.json    # permissões do Tauri (core + diálogo nativo, sem shell)
-    ├── icons/                       # ícones gerados por scripts/generate-icons.mjs
+└── src-tauri/                       # ── BACKEND RUST / TAURI 2 ──
+    ├── Cargo.toml / Cargo.lock
+    ├── build.rs
+    ├── tauri.conf.json
+    ├── capabilities/default.json
+    ├── icons/
     ├── src/
-    │   ├── main.rs                  # entry point (lógica toda na lib, para testar)
-    │   ├── lib.rs                   # montagem do app: estado, plugins, ~56 comandos
-    │   ├── error.rs                 # AppError / ErrorCode (contrato único de erro)
-    │   ├── applog.rs                # log de arquivo com rotação simples (2 MB)
+    │   ├── main.rs                  # entry point
+    │   ├── lib.rs                   # montagem do aplicativo
+    │   ├── error.rs                 # AppError / ErrorCode
+    │   ├── applog.rs                # logging local
     │   ├── adb/
     │   │   ├── mod.rs
-    │   │   ├── client.rs            # ToolManager: descoberta de adb/scrcpy/fastboot
-    │   │   ├── operations.rs        # allowlist DeviceOperation → argv validado
-    │   │   └── parse.rs             # parsers puros de getprop/dumpsys/devices
-    │   ├── commands/                # a superfície exposta ao frontend (invoke)
-    │   │   ├── mod.rs               # AppState
-    │   │   ├── tools.rs             # detectar e validar caminhos das ferramentas
-    │   │   ├── devices.rs           # listar, informações, bateria, rede, Wi-Fi, reboot
-    │   │   ├── packages.rs          # listar, habilitar/desabilitar, instalar APK
-    │   │   ├── files.rs             # listar, push/pull, mkdir, remover
-    │   │   ├── media.rs             # screenshot e pastas padrão de mídia
-    │   │   ├── shell.rs             # sessão de shell persistente
-    │   │   ├── logs.rs              # stream de logcat
-    │   │   ├── scrcpy.rs            # iniciar/parar espelhamento e gravação
-    │   │   ├── fastboot.rs          # devices, getvar, flash, erase, unlock
-    │   │   ├── operations.rs        # execute_operation (fluxo canônico + auditoria)
-    │   │   └── settings.rs          # settings, app info, caminhos
-    │   ├── devices/mod.rs           # Coordinator: lock por serial
+    │   │   ├── client.rs            # descoberta das ferramentas
+    │   │   ├── operations.rs        # allowlist → argv
+    │   │   └── parse.rs             # parsers puros
+    │   ├── commands/                # superfície exposta via invoke
+    │   │   ├── mod.rs
+    │   │   ├── tools.rs
+    │   │   ├── devices.rs
+    │   │   ├── packages.rs
+    │   │   ├── files.rs
+    │   │   ├── media.rs
+    │   │   ├── shell.rs
+    │   │   ├── logs.rs
+    │   │   ├── scrcpy.rs
+    │   │   ├── fastboot.rs
+    │   │   ├── operations.rs
+    │   │   └── settings.rs
+    │   ├── devices/mod.rs           # Coordinator / locks por serial
     │   ├── fastboot/mod.rs          # allowlist FastbootOperation
     │   ├── processes/
-    │   │   ├── mod.rs               # ProcessRegistry (sem órfãos), timeouts
-    │   │   ├── shell.rs             # sessões de shell
-    │   │   ├── logcat.rs            # sessões de logcat
-    │   │   └── transfer.rs          # push/pull com progresso e cancelamento
-    │   ├── scrcpy/mod.rs            # versão mínima, presets e opções
+    │   │   ├── mod.rs               # ProcessRegistry
+    │   │   ├── shell.rs
+    │   │   ├── logcat.rs
+    │   │   └── transfer.rs
+    │   ├── scrcpy/mod.rs            # versão mínima e presets
     │   ├── security/
-    │   │   ├── mod.rs               # validadores (serial, path, pacote, partição)
-    │   │   └── risk.rs              # heurística de risco do debloat
+    │   │   ├── mod.rs               # validadores
+    │   │   └── risk.rs              # heurística de debloat
     │   └── storage/
-    │       ├── mod.rs               # diretórios do app (app.zittodb.desktop)
-    │       ├── settings.rs          # settings.json atômico
-    │       ├── audit.rs             # audit.jsonl com undo
-    │       └── history.rs           # últimos dispositivos vistos
+    │       ├── mod.rs               # diretórios do app
+    │       ├── settings.rs           # settings.json
+    │       ├── audit.rs              # audit.jsonl + undo
+    │       └── history.rs            # dispositivos recentes
     └── tests/
-        └── integration.rs           # integração com fake-adb + testes de segurança
+        └── integration.rs           # integração + segurança
+```
+
+### Mapa das responsabilidades
+
+```mermaid
+flowchart LR
+    UI["src/features/*"] --> BRIDGE["src/services/bridge.ts"]
+    BRIDGE --> COMMANDS["src-tauri/src/commands"]
+    COMMANDS --> OPERATIONS["adb/operations + fastboot"]
+    OPERATIONS --> SECURITY["security/"]
+    SECURITY --> PROCESS["processes/"]
+    PROCESS --> TOOLS["adb · scrcpy · fastboot"]
+    COMMANDS --> STORAGE["storage/"]
+
+    UI -. "não executa" .-> TOOLS
+    UI -. "não conhece" .-> PROCESS
 ```
 
 ### Mapa das camadas
 
 | Camada | Onde | Pode… | Não pode… |
 |---|---|---|---|
-| Interface | `src/features/*` | renderizar, coletar entrada do usuário | executar qualquer processo |
-| Estado | `src/stores`, `src/services` | falar com o backend via `bridge.ts` | conhecer argv ou shell |
-| Contrato | `src/types`, `src/services/bridge.ts` | descrever operações e erros | depender de Rust ou DOM |
-| Backend | `src-tauri/src/commands` | validar, montar argv, orquestrar | confiar em strings vindas da UI |
-| Execução | `src-tauri/src/processes` | rodar e matar processos do sistema | inventar protocolo ADB |
+| **Interface** | `src/features/*` | renderizar, coletar entrada, apresentar resultados | executar qualquer processo |
+| **Estado** | `src/stores`, `src/services` | manter estado e falar com o backend via `Bridge` | conhecer `argv` ou shell |
+| **Contrato** | `src/types`, `src/services/bridge.ts` | descrever operações e erros | depender de detalhes internos do Rust |
+| **Backend** | `src-tauri/src/commands` | validar, orquestrar e delegar | confiar em strings arbitrárias da UI |
+| **Segurança** | `src-tauri/src/security` | validar entrada e classificar risco | executar processos diretamente |
+| **Execução** | `src-tauri/src/processes` | iniciar, acompanhar, cancelar e encerrar processos | inventar protocolo ADB |
+| **Persistência** | `src-tauri/src/storage` | guardar settings, auditoria e histórico local | enviar dados para serviços externos |
+
+### Regra de ouro
+
+Se uma nova funcionalidade precisar executar alguma coisa no sistema, o caminho esperado é:
+
+```text
+UI
+ ↓
+Feature
+ ↓
+Bridge
+ ↓
+Tauri Command
+ ↓
+Typed Operation
+ ↓
+Validation / Security
+ ↓
+ProcessRegistry
+ ↓
+External Tool
+```
+
+Evite qualquer fluxo que transforme entrada da UI diretamente em uma string de shell:
+
+```text
+UI ──X──► "monta comando" ──X──► sh -c ──X──► qualquer coisa
+```
 
 ---
 
