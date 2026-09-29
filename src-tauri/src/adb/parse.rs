@@ -24,7 +24,9 @@ pub fn parse_devices_l(text: &str) -> Vec<RawDevice> {
     let mut out = Vec::new();
     for line in text.lines() {
         let line = line.trim_end();
-        if line.is_empty() || line.starts_with("List of devices") {
+        // Real adb prints daemon noise such as "* daemon started
+        // successfully *" — never a device line.
+        if line.is_empty() || line.starts_with("List of devices") || line.starts_with('*') {
             continue;
         }
         let mut parts = line.splitn(2, char::is_whitespace);
@@ -38,7 +40,9 @@ pub fn parse_devices_l(text: &str) -> Vec<RawDevice> {
         let mut attrs = BTreeMap::new();
         for tok in it {
             if let Some((k, v)) = tok.split_once(':') {
-                if k.is_ascii_lowercase() {
+                // Attribute keys (`product`, `model`, `usb`, …) are lowercase
+                // identifiers; anything else is noise.
+                if !k.is_empty() && k.bytes().all(|b| b.is_ascii_lowercase()) {
                     attrs.insert(k.to_string(), v.to_string());
                 }
             }
@@ -59,18 +63,32 @@ pub fn parse_devices_l(text: &str) -> Vec<RawDevice> {
 pub fn parse_getprop(text: &str) -> BTreeMap<String, String> {
     let mut m = BTreeMap::new();
     for line in text.lines() {
-        if let Some((k, v)) = line.split_once(": ") {
-            let k = k.trim();
-            if !k.is_empty()
-                && k.len() <= 128
-                && k.chars()
-                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
-            {
-                m.insert(k.to_string(), v.trim().to_string());
+        let line = line.trim();
+        // Real `getprop` output is bracketed: `[ro.x]: [value]`.
+        if let Some(rest) = line.strip_prefix('[') {
+            if let Some((k, v)) = rest.split_once("]: [") {
+                if let Some(v) = v.strip_suffix(']') {
+                    insert_prop(&mut m, k, v);
+                }
             }
+            continue;
+        }
+        // Unbracketed `key: value` lines are accepted too (robustness).
+        if let Some((k, v)) = line.split_once(": ") {
+            insert_prop(&mut m, k.trim(), v.trim());
         }
     }
     m
+}
+
+fn insert_prop(m: &mut BTreeMap<String, String>, k: &str, v: &str) {
+    if !k.is_empty()
+        && k.len() <= 128
+        && k.chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+    {
+        m.insert(k.to_string(), v.to_string());
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -83,17 +101,14 @@ pub struct BatteryInfo {
     /// Percent 0..100 (normalized from level/scale when possible).
     pub level: Option<u32>,
     pub temperature: Option<u32>, // 0.1 °C
-    pub status: Option<String>,   // Charging / Discharging / Not charging / Full
+    /// Derived Celsius value (`temperature / 10`), serialized as
+    /// `temperatureC` for the dashboard (matches mock + local backends).
+    pub temperature_c: Option<f32>,
+    pub status: Option<String>, // Charging / Discharging / Not charging / Full
     pub health: Option<String>,
     pub technology: Option<String>,
     pub voltage_mv: Option<u32>,
     pub plugged: Option<String>,
-}
-
-impl BatteryInfo {
-    pub fn temperature_c(&self) -> Option<f32> {
-        self.temperature.map(|t| t as f32 / 10.0)
-    }
 }
 
 pub fn parse_dumpsys_battery(text: &str) -> BatteryInfo {
@@ -481,6 +496,15 @@ DD:EE            offline
     }
 
     #[test]
+    fn getprop_parsing_bracketed_real_format() {
+        // This is what `adb shell getprop` actually prints.
+        let v = parse_getprop("[ro.product.model]: [Redmi Note 12]\n[ro.build.version.release]: [15]\n[init.svc.adbd]: [running]\n");
+        assert_eq!(v.get("ro.product.model").map(|s| s.as_str()), Some("Redmi Note 12"));
+        assert_eq!(v.get("ro.build.version.release").map(|s| s.as_str()), Some("15"));
+        assert_eq!(v.get("init.svc.adbd").map(|s| s.as_str()), Some("running"));
+    }
+
+    #[test]
     fn battery_parsing() {
         let out = r#"Current Battery Service state:
   AC powered: false
@@ -497,7 +521,7 @@ DD:EE            offline
         let b = parse_dumpsys_battery(out);
         assert_eq!(b.level, Some(73));
         assert_eq!(b.temperature, Some(310));
-        assert_eq!(b.temperature_c(), Some(31.0));
+        assert_eq!(b.temperature_c, Some(31.0));
         assert_eq!(b.voltage_mv, Some(4101));
     }
 

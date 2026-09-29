@@ -3,13 +3,15 @@
 //! The host process is always `adb -s <validated-serial> shell`. User input
 //! goes to the child's stdin — it is never part of the host argv.
 
+use std::sync::Arc;
+
 use tauri::AppHandle;
 use tauri::Emitter;
 use tauri::State;
 
 use serde::Serialize;
 
-use crate::error::{AppError, ErrorCode};
+use crate::error::AppError;
 
 use super::AppState;
 
@@ -41,7 +43,7 @@ pub fn shell_open(
         );
     };
 
-    st.shell_mgr.open(&id, &adb, &serial, Box::new(on_line))?;
+    st.shell_mgr.open(&id, &adb, &serial, Arc::new(on_line))?;
     st.log.info(&format!("shell session {id} opened for {serial}"));
     Ok(ShellSessionInfo {
         id,

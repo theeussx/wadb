@@ -50,9 +50,11 @@ pub async fn fastboot_execute(
         }
     }
 
+    // Hoisted before `op` moves into the blocking thread.
+    let op_name = op.name().to_string();
     let args = op.to_args()?;
     let described = format!("{} {}", fastboot_bin, args.join(" "));
-    st.log.info(&format!("fastboot: {}", op.name()));
+    st.log.info(&format!("fastboot: {op_name}"));
 
     let h = blocking(move || op.run(&fastboot_bin));
     let out = join(h).await?;
@@ -72,7 +74,7 @@ pub async fn fastboot_execute(
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0),
         device: None,
-        action: op.name().to_string(),
+        action: op_name,
         command: described,
         result: result_str,
         undo: None,

@@ -228,12 +228,16 @@ impl Drop for StreamHandle {
 
 /// Spawns a long-running process whose stdout/stderr lines are delivered to
 /// `on_line` (called from a background thread — keep the closure cheap).
+///
+/// `on_line` is shared (`Arc`) because two pump threads (stdout + stderr)
+/// outlive this call — a borrow cannot satisfy `thread::spawn`'s `'static`
+/// bound.
 pub fn spawn_streamed(
     executable: &str,
     args: &[String],
     label: &str,
     use_stdin: bool,
-    on_line: Box<dyn Fn(String) + Send + Sync + 'static>,
+    on_line: Arc<dyn Fn(String) + Send + Sync + 'static>,
 ) -> Result<Arc<StreamHandle>, AppError> {
     let mut cmd = Command::new(executable);
     cmd.args(args)
@@ -257,9 +261,10 @@ pub fn spawn_streamed(
     let stdin = if use_stdin { child.stdin.take() } else { None };
 
     {
-        let on_line = &on_line;
-        std::thread::spawn(move || pump_lines(stdout, |line| on_line(line)));
-        std::thread::spawn(move || pump_lines(stderr, |line| on_line(line)));
+        let stdout_cb = Arc::clone(&on_line);
+        std::thread::spawn(move || pump_lines(stdout, move |line| stdout_cb(line)));
+        let stderr_cb = Arc::clone(&on_line);
+        std::thread::spawn(move || pump_lines(stderr, move |line| stderr_cb(line)));
     }
 
     Ok(Arc::new(StreamHandle {
@@ -420,7 +425,7 @@ mod tests {
                 let _ = tx.send(line.trim().to_string());
             };
             let handle =
-                spawn_streamed("/bin/sh", &["-c".into(), "for i in 1 2 3; do echo $i; sleep 0.1; done".into()], "test", false, Box::new(on_line))
+                spawn_streamed("/bin/sh", &["-c".into(), "for i in 1 2 3; do echo $i; sleep 0.1; done".into()], "test", false, Arc::new(on_line))
                     .expect("sh should spawn");
             // Let it produce a couple of lines, then stop early.
             std::thread::sleep(Duration::from_millis(250));
@@ -450,7 +455,7 @@ mod tests {
             let on_line = move |line: String| {
                 let _ = tx.send(line.trim().to_string());
             };
-            spawn_streamed("/bin/cat", &[], "cat", true, Box::new(on_line)).expect("cat")
+            spawn_streamed("/bin/cat", &[], "cat", true, Arc::new(on_line)).expect("cat")
         };
         handle.write("ping\n").expect("write");
         let got = rx
@@ -469,7 +474,7 @@ mod tests {
             &["30".to_string()],
             "test-sleep",
             false,
-            Box::new(on_line),
+            Arc::new(on_line),
         )
         .expect("sleep");
         reg.add("t1", h);

@@ -134,12 +134,10 @@ pub fn run() {
             commands::settings::get_app_info,
             commands::settings::get_app_paths,
         ])
-        // Make sure nothing survives the app (no orphan processes, spec §45).
-        .on_exit(|_app, _reason| {
-            // AppState is dropped with the app; its Drop impls (registry,
-            // shell, logcat, transfers) kill every child. Kept explicit for
-            // clarity:
-        })
+        // No orphan processes (spec §45): AppState is dropped with the app and
+        // its Drop impls (registry, shell, logcat, transfers) kill every
+        // child. (Tauri 2 offers no `Builder::on_exit` hook, so shutdown
+        // cleanup relies on these `Drop` impls, which run deterministically.)
         .run(tauri::generate_context!())
         .expect("error while running ADB Studio");
 }

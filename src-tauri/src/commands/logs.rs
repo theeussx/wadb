@@ -3,6 +3,8 @@
 //! The backend streams lines; the frontend keeps a bounded window
 //! (settings.logcat_max_lines, default 5 000) so memory stays flat.
 
+use std::sync::Arc;
+
 use tauri::AppHandle;
 use tauri::Emitter;
 use tauri::State;
@@ -46,7 +48,7 @@ pub fn logcat_start(
 
     let spec_ref = spec.as_deref();
     st.logcat_mgr
-        .open(&id, &adb, &serial, spec_ref, Box::new(on_line))?;
+        .open(&id, &adb, &serial, spec_ref, Arc::new(on_line))?;
     st.log.info(&format!("logcat session {id} started for {serial}"));
     Ok(id)
 }

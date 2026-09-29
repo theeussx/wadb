@@ -1,5 +1,7 @@
 //! scrcpy commands (spec §8, §14, §17).
 
+use std::sync::Arc;
+
 use tauri::AppHandle;
 use tauri::Emitter;
 use tauri::State;
@@ -40,7 +42,7 @@ pub fn scrcpy_start(
     opts.validate()?;
     let args = opts.to_args(&serial)?;
 
-    let recording = opts.record_path.clone().map(|p| p.to_string_lossy().to_string());
+    let recording = opts.record_path.is_some();
 
     // Stream scrcpy's log lines to the UI (it prints errors like
     // "ERROR: unable to find the device" on stderr).
@@ -54,14 +56,14 @@ pub fn scrcpy_start(
     };
 
     let label = format!("scrcpy -s {serial}");
-    let handle = spawn_streamed(&scrcpy_bin, &args, &label, false, Box::new(on_line))?;
+    let handle = spawn_streamed(&scrcpy_bin, &args, &label, false, Arc::new(on_line))?;
     st.registry.add(SCRCPY_ID, handle);
     st.log.info(&format!("scrcpy started: {}", args.join(" ")));
 
     Ok(ScrcpyStatus {
         running: true,
         pid: st.registry.status(SCRCPY_ID).1,
-        recording: recording.is_some(),
+        recording,
     })
 }
 
