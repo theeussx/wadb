@@ -1,14 +1,35 @@
-# ADB Studio
+# Zittodb
 
-Ferramenta **Linux** leve e **local-first** para trabalhar com **ADB**, **scrcpy** e **fastboot** via interface gráfica: gerenciamento de dispositivos, shell, screenshots, espelhamento de tela, gestão de aplicativos (incluindo debloat com classificação de risco), transferência de arquivos, logcat, diagnóstico, auditoria e histórico.
+**Interface gráfica leve e local-first para ADB, scrcpy e fastboot no Linux.**
+
+> Zittodb **não é um banco de dados**: o "db" vem de *Android Debug Bridge*.
+
+Gerenciamento de dispositivos, shell, screenshots, espelhamento de tela, gestão de aplicativos (incluindo debloat com classificação de risco), transferência de arquivos, logcat, diagnóstico, auditoria e histórico.
+
+<!-- Adicione aqui um screenshot ou GIF da interface: ![Zittodb](docs/screenshot.png) -->
 
 - **Stack:** Tauri 2 + Rust (backend) · React + TypeScript + Vite (frontend) · CSS puro
 - **Filosofia:** o frontend não executa processos. O desktop usa Rust; o desenvolvimento no navegador usa um serviço Node integrado ao Vite para executar ADB localmente. Sem telemetria, nuvem ou contas.
 - **Hardware-alvo:** laptops com 2 GB de RAM (modos de desempenho `low` e `ultra`).
+- **Licença:** MIT
 
-> **V0.1 (este repositório):** detecção de ferramentas, lista de dispositivos com estados, informações do dispositivo, shell, screenshot, integração scrcpy, instalação/extração de APK, testes e documentação. V0.2/V0.3 estendem (perfil de risco por perfil, fastboot estendido, i18n adicional).
+> **Estado atual: V0.1.** Detecção de ferramentas, lista de dispositivos com estados, informações do dispositivo, shell, screenshot, integração scrcpy, instalação/extração de APK, testes e documentação. Veja o [roadmap](#roadmap).
 
 ---
+
+## Instalação
+
+**Usuário final:** baixe o `.AppImage` ou o `.deb` na página de [Releases](https://github.com/theeussx/zittodb/releases), sem precisar compilar.
+
+```bash
+# AppImage
+chmod +x Zittodb-*.AppImage && ./Zittodb-*.AppImage
+
+# .deb (Debian/Ubuntu)
+sudo apt install ./zittodb_*.deb
+```
+
+Para compilar a partir do código, veja [Uso](#uso).
 
 ## Funcionalidades (V0.1)
 
@@ -42,7 +63,7 @@ Ferramenta **Linux** leve e **local-first** para trabalhar com **ADB**, **scrcpy
 - **Linux** (Wayland ou X11; distros base Debian/Ubuntu — ver `docs/DEVELOPMENT.md`)
 - `adb` (platform-tools) — `sudo apt install adb`
 - `scrcpy` (opcional para a aba Tela) — scrcpy **3.2+** é necessário para Android 15; prefira o [release oficial](https://github.com/Genymobile/scrcpy/releases), pois `apt install scrcpy` pode instalar a versão antiga 1.25.
-- Se o release oficial for extraído em `~/Downloads` (ou instalado em `PATH`/`~/.local/bin`), o ADB Studio tenta encontrá-lo automaticamente. Caso contrário, em **Configurações → Ferramentas → scrcpy**, selecione o arquivo executável `scrcpy` — não o arquivo `.tar.gz`.
+- Se o release oficial for extraído em `~/Downloads` (ou instalado em `PATH`/`~/.local/bin`), o Zittodb tenta encontrá-lo automaticamente. Caso contrário, em **Configurações → Ferramentas → scrcpy**, selecione o arquivo executável `scrcpy` — não o arquivo `.tar.gz`.
 - Autorização ADB padrão (RSA): o app **nunca** burla a autorização; dispositivos `unauthorized` mostram o aviso.
 
 ## Uso
@@ -81,8 +102,6 @@ npm run tauri:dev   # desenvolvimento
 npm run tauri:build # gera AppImage + .deb em src-tauri/target/release/bundle/
 ```
 
-Ao abrir o aplicativo desktop, o ADB Studio consulta apenas os metadados públicos do último release ou tag no GitHub e mostra um aviso quando há versão mais nova. O download e a instalação continuam sendo manuais.
-
 ### Testes
 
 ```bash
@@ -99,6 +118,16 @@ cd src-tauri && cargo test   # Rust (parsers, allowlist, segurança, processos, 
 4. **Série explícita.** Toda operação de dispositivo usa `-s SERIAL` do dispositivo selecionado — nunca "qualquer dispositivo".
 5. **Sem processos órfãos.** Registry de processos; SIGTERM → 3 s → SIGKILL; `on_exit` derruba tudo.
 6. **Nada sai da máquina.** Sem telemetria, sem analytics, sem nuvem, sem servidores/DBs locais.
+
+### Única conexão externa
+
+Ao abrir o aplicativo desktop, o Zittodb consulta **apenas os metadados públicos** do último release ou tag no GitHub e mostra um aviso quando há versão mais nova. Nenhum dado seu ou do dispositivo é enviado. O download e a instalação continuam sendo manuais.
+
+## Roadmap
+
+- [x] **V0.1** — ferramentas, dispositivos, informações, shell, screenshot, scrcpy, APK, testes e docs
+- [ ] **V0.2** — perfil de risco por perfil, fastboot estendido
+- [ ] **V0.3** — i18n adicional
 
 ## Estrutura
 
