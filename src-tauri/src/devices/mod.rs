@@ -193,7 +193,10 @@ pub fn get_battery(adb: &str, serial: &str) -> Result<parse::BatteryInfo, AppErr
 pub fn get_storage(adb: &str, serial: &str) -> Result<parse::DiskUsage, AppError> {
     validate_serial(serial)?;
     let client = AdbClient::new(adb);
-    let out = client.run_shell(serial, "df -m /sdcard")?;
+    // Android's toybox `df` does not support the GNU `-m` flag. Request
+    // 1024-byte blocks, which is supported across Android versions, and let
+    // the parser normalize the result to MB for the UI.
+    let out = client.run_shell(serial, "df -k /sdcard")?;
     if !out.success() {
         return Err(AppError::from_process(ErrorCode::ProcessFailed, adb, &out));
     }

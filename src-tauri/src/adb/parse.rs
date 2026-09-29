@@ -153,7 +153,7 @@ pub fn parse_dumpsys_battery(text: &str) -> BatteryInfo {
 }
 
 // ---------------------------------------------------------------------------
-// `df -m <path>`
+// `df -k <path>` / `df -m <path>`
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -165,8 +165,16 @@ pub struct DiskUsage {
     pub path: String,
 }
 
-/// Parses the last data line of a `df -m` listing.
+/// Parses the last data line of a `df` listing and normalizes 1024-byte block
+/// output (Android's `df -k`) to MB. GNU-style `1M-blocks` output is kept as
+/// is for compatibility with existing callers and fixtures.
 pub fn parse_df(text: &str, path: &str) -> Option<DiskUsage> {
+    let is_kib = text.lines().any(|line| {
+        let header = line.to_ascii_lowercase();
+        header.contains("1k-blocks")
+            || header.contains("1024-blocks")
+            || header.contains("k-blocks")
+    });
     for line in text.lines().rev() {
         let t: Vec<&str> = line.split_whitespace().collect();
         if t.len() >= 6 {
@@ -175,10 +183,11 @@ pub fn parse_df(text: &str, path: &str) -> Option<DiskUsage> {
                 t[2].parse::<u64>(),
                 t[3].parse::<u64>(),
             ) {
+                let to_mb = |blocks: u64| if is_kib { blocks / 1024 } else { blocks };
                 return Some(DiskUsage {
-                    total_mb: total,
-                    used_mb: used,
-                    avail_mb: avail,
+                    total_mb: to_mb(total),
+                    used_mb: to_mb(used),
+                    avail_mb: to_mb(avail),
                     path: path.to_string(),
                 });
             }
@@ -572,6 +581,12 @@ DD:EE            offline
         assert_eq!(d.used_mb, 45678);
         assert_eq!(d.avail_mb, 77778);
         assert!(parse_df("Filesystem      1M-blocks\n", "/sdcard").is_none());
+
+        let android = "Filesystem     1024-blocks   Used Available Capacity Mounted on\n/dev/block  1048576 262144 786432 25% /sdcard\n";
+        let d = parse_df(android, "/sdcard").expect("should parse Android df");
+        assert_eq!(d.total_mb, 1024);
+        assert_eq!(d.used_mb, 256);
+        assert_eq!(d.avail_mb, 768);
     }
 
     #[test]
