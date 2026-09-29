@@ -42,6 +42,7 @@ Ferramenta **Linux** leve e **local-first** para trabalhar com **ADB**, **scrcpy
 - **Linux** (Wayland ou X11; distros base Debian/Ubuntu — ver `docs/DEVELOPMENT.md`)
 - `adb` (platform-tools) — `sudo apt install adb`
 - `scrcpy` (opcional para a aba Tela) — scrcpy **3.2+** é necessário para Android 15; prefira o [release oficial](https://github.com/Genymobile/scrcpy/releases), pois `apt install scrcpy` pode instalar a versão antiga 1.25.
+- Se o release oficial for extraído em `~/Downloads` (ou instalado em `PATH`/`~/.local/bin`), o ADB Studio tenta encontrá-lo automaticamente. Caso contrário, em **Configurações → Ferramentas → scrcpy**, selecione o arquivo executável `scrcpy` — não o arquivo `.tar.gz`.
 - Autorização ADB padrão (RSA): o app **nunca** burla a autorização; dispositivos `unauthorized` mostram o aviso.
 
 ## Uso
@@ -79,6 +80,8 @@ Usa dados simulados e exibe o banner de demonstração. `npm run preview` també
 npm run tauri:dev   # desenvolvimento
 npm run tauri:build # gera AppImage + .deb em src-tauri/target/release/bundle/
 ```
+
+Ao abrir o aplicativo desktop, o ADB Studio consulta apenas os metadados públicos do último release ou tag no GitHub e mostra um aviso quando há versão mais nova. O download e a instalação continuam sendo manuais.
 
 ### Testes
 

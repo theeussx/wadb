@@ -116,8 +116,12 @@ impl ToolManager {
     pub fn require(&self, kind: ToolKind, manual: Option<&str>) -> Result<String, AppError> {
         let mut cache = self.paths.lock().unwrap();
         let idx = Self::idx(kind);
-        if cache[idx].is_some() {
-            return Ok(cache[idx].clone().unwrap());
+        if let Some(cached) = cache[idx].as_ref() {
+            if is_executable_file(Path::new(cached)) {
+                return Ok(cached.clone());
+            }
+            // A manually configured binary may have been removed or moved.
+            cache[idx] = None;
         }
         // First use or invalidated cache: detect on the fly.
         let dirs = sdk_dirs();
@@ -128,17 +132,27 @@ impl ToolManager {
                 cache[idx] = Some(s.clone());
                 Ok(s)
             }
-            None => Err(AppError::new(
-                if kind == ToolKind::Adb {
-                    ErrorCode::AdbNotFound
+            None => {
+                let details = if let Some(path) = manual {
+                    format!(
+                        "Configured {} path does not exist or is not executable: {}. Choose the downloaded executable in Configurações → Ferramentas.",
+                        kind.as_str(), path
+                    )
                 } else {
-                    ErrorCode::ToolNotFound
-                },
-                format!(
-                    "{} not found. Install it or set its path in Configurações.",
-                    kind.as_str()
-                ),
-            )),
+                    format!(
+                        "{} not found. Install it or set its path in Configurações.",
+                        kind.as_str()
+                    )
+                };
+                Err(AppError::new(
+                    if kind == ToolKind::Adb {
+                        ErrorCode::AdbNotFound
+                    } else {
+                        ErrorCode::ToolNotFound
+                    },
+                    details,
+                ))
+            }
         }
     }
 
@@ -242,6 +256,11 @@ pub fn find_tool(
     if let Some(p) = find_in_path(name) {
         return (Some(p), Some("path".into()));
     }
+    if *kind == ToolKind::Scrcpy {
+        if let Some(p) = find_scrcpy_download() {
+            return (Some(p), Some("download".into()));
+        }
+    }
     for dir in dirs {
         let cand = dir.join(name);
         if is_executable_file(&cand) {
@@ -249,6 +268,27 @@ pub fn find_tool(
         }
     }
     (None, None)
+}
+
+/// Finds the official Linux archive/AppImage when it was downloaded but not
+/// installed into PATH. This scans only ~/Downloads and one directory level.
+fn find_scrcpy_download() -> Option<PathBuf> {
+    let home = std::env::var_os("HOME").map(PathBuf::from)?;
+    let downloads = home.join("Downloads");
+    for entry in std::fs::read_dir(downloads).ok()?.flatten() {
+        let path = entry.path();
+        let name = path.file_name()?.to_string_lossy().to_lowercase();
+        if path.is_file() && name.starts_with("scrcpy") && is_executable_file(&path) {
+            return Some(path);
+        }
+        if path.is_dir() && name.starts_with("scrcpy") {
+            let binary = path.join("scrcpy");
+            if is_executable_file(&binary) {
+                return Some(binary);
+            }
+        }
+    }
+    None
 }
 
 fn fetch_version(path: &str, kind: &ToolKind) -> Option<String> {

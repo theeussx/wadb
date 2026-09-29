@@ -15,6 +15,9 @@ const ptBR: Record<string, string> = {
   'demo.banner':
     'Modo demonstração: backend Tauri/Rust não detectado. Dispositivos simulados. Para usar com ADB real, compile com `npm run tauri:dev` ou `npm run tauri:build`.',
   'app.tagline': 'Android ADB · scrcpy · fastboot — local-first',
+  'updates.available': 'Nova versão disponível: v{version}',
+  'updates.viewRelease': 'Ver release',
+  'updates.dismiss': 'Dispensar',
 
   // ---- tools status ----
   'tools.found': '{tool} encontrado',
@@ -374,6 +377,7 @@ const ptBR: Record<string, string> = {
   'settings.autoRefresh.hint': 'Vazio = desligado (padrão). Nunca faça polling agressivo.',
   'settings.toolPath': 'Caminho do executável',
   'settings.toolPath.hint': 'Vazio = detecção automática (PATH, ANDROID_HOME, ~/Android/Sdk).',
+  'settings.tools.invalidPath': 'caminho salvo não existe; selecione o executável baixado ou limpe o campo',
   'settings.toolUse': 'Usar',
   'settings.toolAuto': 'Automático',
   'settings.screenshotDir': 'Pasta de screenshots',
@@ -598,7 +602,7 @@ const ptBR: Record<string, string> = {
   'settings.tools': 'Ferramentas',
   'settings.tools.browse': 'Procurar',
   'settings.tools.hint':
-    'Deixe em branco para descobrir automaticamente (PATH, ANDROID_HOME, ~/Android/Sdk…).',
+    'Deixe em branco para descobrir automaticamente (PATH, ~/Downloads, ~/.local/bin…).',
   'settings.tools.manualHint': 'caminho manual para {tool}',
   'settings.version': 'Versão',
 

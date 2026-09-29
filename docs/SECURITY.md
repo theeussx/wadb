@@ -49,7 +49,7 @@ Desativar pacote **não** é destrutiva (é reversível e o app oferece Reverter
 
 ## 6. Superfície de rede e dados
 
-- **Zero** de telemetria/analytics/updates automáticos. O app não abre rede além da sessão ADB com o aparelho.
+- **Zero** de telemetria/analytics e nenhum update automático. Ao abrir o app, ele pode consultar somente os metadados públicos do último release no GitHub para avisar sobre uma nova versão; nenhum arquivo é baixado ou instalado.
 - Sem servidor local, sem DB, sem arquivos temporários compartilhados.
 - Persistência: `~/.config/com.wadb.adb-studio/settings.json` (atômica), `audit.jsonl` (5.000 linhas), histórico de dispositivos (metadados), log do app (2 MB). Nada de token, cookie ou segredo.
 

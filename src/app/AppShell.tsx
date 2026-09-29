@@ -5,12 +5,14 @@ import { APP, SHORTCUTS } from '../config/app';
 import { useShortcuts } from '../hooks/useShortcuts';
 import { useApp, type Nav } from '../stores/app';
 import { Toasts } from '../components/Toasts';
+import { UpdateBanner } from '../components/UpdateBanner';
 import { DeviceList } from '../features/devices/DeviceList';
 import { DeviceDashboard } from '../features/devices/DeviceDashboard';
 import { CommandBuilder } from '../features/builder/CommandBuilder';
 import { FastbootView } from '../features/fastboot/FastbootView';
 import { HistoryView } from '../features/history/HistoryView';
 import { SettingsView } from '../features/settings/SettingsView';
+import type { UpdateInfo } from '../services/updateService';
 
 function ToolStatusRow({ name, found, version }: { name: string; found: boolean; version: string | null }) {
   const t = useApp((s) => s.t);
@@ -85,7 +87,7 @@ function Sidebar() {
   );
 }
 
-export function AppShell() {
+export function AppShell({ update, onDismissUpdate }: { update?: UpdateInfo | null; onDismissUpdate?: () => void }) {
   const nav = useApp((s) => s.nav);
   const devices = useApp((s) => s.devices);
   const selectedSerial = useApp((s) => s.selectedSerial);
@@ -129,6 +131,7 @@ export function AppShell() {
         {!isDemo && !isTauri() && (
           <div className="banner" role="note">{t('local.banner')}</div>
         )}
+        {update && onDismissUpdate && <UpdateBanner update={update} onDismiss={onDismissUpdate} />}
         <div className="content">
           {nav === 'devices' &&
             (selected ? <DeviceDashboard /> : <DeviceList />)}

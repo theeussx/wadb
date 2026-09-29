@@ -13,6 +13,9 @@ const enUS: Record<string, string> = {
   'demo.banner':
     'Demo mode: Tauri/Rust backend not detected. Simulated devices. For real ADB use, build with `npm run tauri:dev` or `npm run tauri:build`.',
   'app.tagline': 'Android ADB · scrcpy · fastboot — local-first',
+  'updates.available': 'New version available: v{version}',
+  'updates.viewRelease': 'View release',
+  'updates.dismiss': 'Dismiss',
 
   'tools.found': '{tool} found',
   'tools.missing': '{tool} not found',
@@ -579,7 +582,8 @@ const enUS: Record<string, string> = {
   'settings.tools': 'Tools',
   'settings.tools.browse': 'Browse',
   'settings.tools.hint':
-    'Leave blank to auto-detect (PATH, ANDROID_HOME, ~/Android/Sdk…).',
+    'Leave blank to auto-detect (PATH, ~/Downloads, ~/.local/bin…).',
+  'settings.tools.invalidPath': 'saved path does not exist; select the downloaded executable or clear the field',
   'settings.tools.manualHint': 'manual path for {tool}',
   'settings.version': 'Version',
 

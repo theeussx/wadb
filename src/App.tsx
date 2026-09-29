@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppShell } from './app/AppShell';
 import { getBridge, asAppError } from './services/bridge';
 import { refreshDevices } from './services/deviceService';
+import { checkForUpdate, type UpdateInfo } from './services/updateService';
 import { applyHtmlClasses, perfTweaks, useApp } from './stores/app';
 
 export default function App() {
@@ -10,6 +11,7 @@ export default function App() {
   const setDemo = useApp((s) => s.setDemo);
   const setTools = useApp((s) => s.setTools);
   const toast = useApp((s) => s.toast);
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
 
   // Bootstrap: environment, settings, tools, devices.
   useEffect(() => {
@@ -30,6 +32,12 @@ export default function App() {
 
     void refreshDevices();
   }, [applySettings, setDemo, setTools]);
+
+  // Release metadata only; failures are silent so offline use is unaffected.
+  useEffect(() => {
+    if (getBridge().isDemo) return;
+    void checkForUpdate().then(setUpdate).catch(() => undefined);
+  }, []);
 
   // Auto refresh (only when enabled by the user — spec §40: no metrics by default).
   const refreshSecs = settings.autoRefreshSecs;
@@ -60,5 +68,5 @@ export default function App() {
     return () => window.removeEventListener('adb-studio:screenshot', onShot);
   }, [toast]);
 
-  return <AppShell />;
+  return <AppShell update={update} onDismissUpdate={() => setUpdate(null)} />;
 }
